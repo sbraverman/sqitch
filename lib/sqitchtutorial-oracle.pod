@@ -114,14 +114,14 @@ Let's have a look at F<sqitch.conf>:
   	# revert_dir = revert
   	# verify_dir = verify
   	# extension = sql
-  # [core "oracle"]
+  # [engine "oracle"]
   	# target = db:oracle:
   	# registry = 
   	# client = /usr/local/instantclient_11_2/sqlplus
 
 Good, it picked up on the fact that we're creating changes for the Oracle
 engine, thanks to the C<--engine oracle> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[core "oracle"]> section with all the
+Furthermore, it wrote a commented-out C<[engine "oracle"]> section with all the
 available Oracle engine-specific settings commented out and ready to be edited
 as appropriate. This includes the path to
 L<SQL*Plus|http://www.orafaq.com/wiki/SQL*Plus> in my C<$ORACLE_HOME>.
@@ -207,7 +207,7 @@ probably makes the most sense to create a superuser named C<sqitch> or
 something similar and use it to deploy changes.
 
 If you'd like it to use a different database as the registry database, use
-C<sqitch config core.oracle.registry $name> to configure it (or via the
+C<sqitch engine add oracle $name> to configure it (or via the
 L<C<target> command|sqitch-target>; more L<below|/On Target>). This will be
 useful if you don't want to use the same registry database to manage multiple
 databases on the same server.
@@ -434,7 +434,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch config core.oracle.target flipr_test
+  > sqitch engine add oracle flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be

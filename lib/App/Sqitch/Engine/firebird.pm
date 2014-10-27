@@ -871,7 +871,7 @@ sub default_client {
         'Cannot dup STDERR: {error}', $!
     );
     hurl firebird => __(
-        'Unable to locate Firebird ISQL; set "core.firebird.client" via sqitch config'
+        'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
     );
 }
 
@@ -894,18 +894,6 @@ App::Sqitch::Engine::firebird - Sqitch Firebird Engine
 App::Sqitch::Engine::firebird provides the Firebird storage engine for Sqitch.
 
 =head1 Interface
-
-=head2 Accessors
-
-=head3 C<client>
-
-Returns the path to the Firebird client. If C<--db-client> was passed to
-C<sqitch>, that's what will be returned. Otherwise, it uses the
-C<core.firebird.client> configuration value, or else defaults to C<fbsql>,
-C<isql-fb>, or C<isql>, whichever appears first in the path and appears to be
-Firebird interactive SQL utility. The value will end in C<.exe> on Windows. An
-exception will be thrown if none of these can be found in the path, or if none
-look like the Firebird interactive SQL utility.
 
 =head2 Instance Methods
 

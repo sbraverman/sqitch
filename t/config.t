@@ -223,13 +223,13 @@ ok $cmd->execute('core.engine'), 'Get core.engine';
 is_deeply \@emit, [['pg']], 'Should have emitted the merged core.engine';
 @emit = ();
 
-ok $cmd->execute('core.pg.host'), 'Get core.pg.host';
-is_deeply \@emit, [['localhost']], 'Should have emitted the merged core.pg.host';
+ok $cmd->execute('engine.pg.registry'), 'Get engine.pg.registry';
+is_deeply \@emit, [['meta']], 'Should have emitted the merged engine.pg.registry';
 @emit = ();
 
-ok $cmd->execute('core.pg.client'), 'Get core.pg.client';
+ok $cmd->execute('engine.pg.client'), 'Get engine.pg.client';
 is_deeply \@emit, [['/usr/local/pgsql/bin/psql']],
-    'Should have emitted the merged core.pg.client';
+    'Should have emitted the merged engine.pg.client';
 @emit = ();
 
 # Make sure the key is required.
@@ -337,13 +337,13 @@ CONTEXT: {
     is_deeply \@emit, [['pg']], 'Should have emitted the system core.engine';
     @emit = ();
 
-    ok $cmd->execute('core.pg.client'), 'Get system core.pg.client';
+    ok $cmd->execute('engine.pg.client'), 'Get system engine.pg.client';
     is_deeply \@emit, [['/usr/local/pgsql/bin/psql']],
-        'Should have emitted the system core.pg.client';
+        'Should have emitted the system engine.pg.client';
     @emit = @fail = ();
 
-    throws_ok { $cmd->execute('core.pg.host') } 'App::Sqitch::X',
-        'Attempt to get core.pg.host should fail';
+    throws_ok { $cmd->execute('engine.pg.host') } 'App::Sqitch::X',
+        'Attempt to get engine.pg.host should fail';
     is $@->ident, 'config', 'Error ident should be "config"';
     is $@->message, '', 'Error Message should be empty';
     is $@->exitval, 1, 'Error exitval should be 1';
@@ -358,13 +358,13 @@ CONTEXT: {
     }), 'Create user config get command';
     @emit = ();
 
-    ok $cmd->execute('core.pg.host'), 'Get user core.pg.host';
-    is_deeply \@emit, [['localhost']], 'Should have emitted the user core.pg.host';
+    ok $cmd->execute('engine.pg.registry'), 'Get user engine.pg.registry';
+    is_deeply \@emit, [['meta']], 'Should have emitted the user engine.pg.registry';
     @emit = ();
 
-    ok $cmd->execute('core.pg.client'), 'Get user core.pg.client';
+    ok $cmd->execute('engine.pg.client'), 'Get user engine.pg.client';
     is_deeply \@emit, [['/opt/local/pgsql/bin/psql']],
-        'Should have emitted the user core.pg.client';
+        'Should have emitted the user engine.pg.client';
     @emit = ();
 
     local $ENV{SQITCH_CONFIG} = file qw(t local.conf);
@@ -376,8 +376,8 @@ CONTEXT: {
     }), 'Create local config get command';
     @emit = ();
 
-    ok $cmd->execute('core.pg.db_name'), 'Get local core.pg.db_name';
-    is_deeply \@emit, [['widgets']], 'Should have emitted the local core.pg.db_name';
+    ok $cmd->execute('engine.pg.target'), 'Get local engine.pg.target';
+    is_deeply \@emit, [['mydb']], 'Should have emitted the local engine.pg.target';
     @emit = ();
 
     ok $cmd->execute('core.engine'), 'Get local core.engine';
@@ -440,33 +440,32 @@ ok $cmd = App::Sqitch::Command::config->new({
 }), 'Create config list command';
 ok $cmd->execute, 'Execute the list action';
 is_deeply \@emit, [[
-    "bundle.dest_dir=_build/sql
+    'bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
-core.firebird.client=/opt/firebird/bin/isql
-core.firebird.registry=meta
-core.mysql.client=/opt/local/mysql/bin/mysql
-core.mysql.registry=meta
-core.mysql.username=root
-core.pg.client=/opt/local/pgsql/bin/psql
-core.pg.db_name=widgets
-core.pg.host=localhost
-core.pg.registry=meta
-core.pg.username=postgres
-core.sqlite.client=/opt/local/bin/sqlite3
-core.sqlite.registry=meta
-core.sqlite.target=devdb
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
+engine.firebird.client=/opt/firebird/bin/isql
+engine.firebird.registry=meta
+engine.mysql.client=/opt/local/mysql/bin/mysql
+engine.mysql.registry=meta
+engine.pg.client=/opt/local/pgsql/bin/psql
+engine.pg.registry=meta
+engine.pg.target=mydb
+engine.sqlite.client=/opt/local/bin/sqlite3
+engine.sqlite.registry=meta
+engine.sqlite.target=devdb
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
 target.devdb.uri=db:sqlite:
-user.email=michael\@example.com
+target.mydb.plan_file=t/plans/dependencies.plan
+target.mydb.uri=db:pg:mydb
+user.email=michael@example.com
 user.name=Michael Stonebraker
-"
+'
 ]], 'Should have emitted the merged config';
 @emit = ();
 
@@ -482,19 +481,18 @@ CONTEXT: {
     }), 'Create system config list command';
     ok $cmd->execute, 'List the system config';
     is_deeply \@emit, [[
-    "bundle.dest_dir=_build/sql
+        'bundle.dest_dir=_build/sql
 bundle.from=gamma
 bundle.tags_only=true
 core.engine=pg
 core.extension=ddl
-core.pg.client=/usr/local/pgsql/bin/psql
-core.pg.username=theory
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/
+engine.pg.client=/usr/local/pgsql/bin/psql
 revert.count=2
 revert.revision=1.1
 revert.to=gamma
-"
+'
     ]], 'Should have emitted the system config list';
     @emit = ();
 
@@ -507,20 +505,19 @@ revert.to=gamma
     }), 'Create user config list command';
     ok $cmd->execute, 'List the user config';
     is_deeply \@emit, [[
-        "core.firebird.client=/opt/firebird/bin/isql
-core.firebird.registry=meta
-core.mysql.client=/opt/local/mysql/bin/mysql
-core.mysql.registry=meta
-core.mysql.username=root
-core.pg.client=/opt/local/pgsql/bin/psql
-core.pg.host=localhost
-core.pg.registry=meta
-core.pg.username=postgres
-core.sqlite.client=/opt/local/bin/sqlite3
-core.sqlite.registry=meta
-user.email=michael\@example.com
+        'engine.firebird.client=/opt/firebird/bin/isql
+engine.firebird.registry=meta
+engine.mysql.client=/opt/local/mysql/bin/mysql
+engine.mysql.registry=meta
+engine.pg.client=/opt/local/pgsql/bin/psql
+engine.pg.registry=meta
+engine.pg.target=db:pg://postgres@localhost/thingies
+engine.sqlite.client=/opt/local/bin/sqlite3
+engine.sqlite.registry=meta
+engine.sqlite.target=db:sqlite:my.db
+user.email=michael@example.com
 user.name=Michael Stonebraker
-"
+'
     ]],  'Should only have emitted the user config list';
     @emit = ();
 
@@ -533,11 +530,13 @@ user.name=Michael Stonebraker
     }), 'Create local config list command';
     ok $cmd->execute, 'List the local config';
     is_deeply \@emit, [[
-        "core.engine=pg
-core.pg.db_name=widgets
-core.sqlite.target=devdb
+        'core.engine=pg
+engine.pg.target=mydb
+engine.sqlite.target=devdb
 target.devdb.uri=db:sqlite:
-"
+target.mydb.plan_file=t/plans/dependencies.plan
+target.mydb.uri=db:pg:mydb
+'
     ]],  'Should only have emitted the local config list';
     @emit = ();
 }
@@ -583,11 +582,11 @@ is_deeply read_config($cmd->file), {'core.foo' => 'bar', 'core.engine' => 'funky
     'Both settings should be saved';
 
 # Write a sub-propery.
-ok $cmd->execute('core.pg.user' => 'theory'), 'Write core.pg.user';
+ok $cmd->execute('engine.pg.user' => 'theory'), 'Write engine.pg.user';
 is_deeply read_config($cmd->file), {
     'core.foo'     => 'bar',
     'core.engine'  => 'funky',
-    'core.pg.user' => 'theory',
+    'engine.pg.user' => 'theory',
 }, 'Both sections should be saved';
 
 # Make sure the key is required.
@@ -613,7 +612,7 @@ ok $cmd->execute('core.foo' => 'baz'), 'Add to core.foo';
 is_deeply read_config($cmd->file), {
     'core.foo'     => ['bar', 'baz'],
     'core.engine'  => 'funky',
-    'core.pg.user' => 'theory',
+    'engine.pg.user' => 'theory',
 }, 'The value should have been added to the property';
 
 # Make sure the key is required.
@@ -788,29 +787,24 @@ ok $cmd->execute('core\\..+'), 'Call get_regex on core\\..+';
 is_deeply \@emit, [[q{core.engine=funky
 core.extension=ddl
 core.foo=[bar, baz]
-core.pg.client=/usr/local/pgsql/bin/psql
-core.pg.user=theory
-core.pg.username=theory
 core.top_dir=migrations
 core.uri=https://github.com/theory/sqitch/}
 ]], 'Should match all core options';
 @emit = ();
 
-ok $cmd->execute('core\\.pg\\..+'), 'Call get_regex on core\\.pg\\..+';
-is_deeply \@emit, [[q{core.pg.client=/usr/local/pgsql/bin/psql
-core.pg.user=theory
-core.pg.username=theory}
-]], 'Should match all core.pg options';
+ok $cmd->execute('engine\\.pg\\..+'), 'Call get_regex on engine\\.pg\\..+';
+is_deeply \@emit, [[q{engine.pg.client=/usr/local/pgsql/bin/psql
+engine.pg.user=theory}
+]], 'Should match all engine.pg options';
 @emit = ();
 
-ok $cmd->execute('core\\.pg\\..+', 'theory$'),
-    'Call get_regex on core\\.pg\\..+ and value regex';
-is_deeply \@emit, [[q{core.pg.user=theory
-core.pg.username=theory}
-]], 'Should match all core.pg options that match';
+ok $cmd->execute('engine\\.pg\\..+', 'theory$'),
+    'Call get_regex on engine\\.pg\\..+ and value regex';
+is_deeply \@emit, [[q{engine.pg.user=theory}
+]], 'Should match all engine.pg options that match';
 @emit = ();
 
-throws_ok { $cmd->execute('core\\.pg\\..+', 'x$') } 'App::Sqitch::X',
+throws_ok { $cmd->execute('engine\\.pg\\..+', 'x$') } 'App::Sqitch::X',
     'Attempt to get_regex core.foo with non-matching regex should fail';
 is $@->ident, 'config', 'Error ident should be "config"';
 is $@->message, '', 'Error Message should be empty';
@@ -915,11 +909,11 @@ ok $cmd = App::Sqitch::Command::config->new({
     action  => 'unset',
 }), 'Create system config unset command';
 
-ok $cmd->execute('core.pg.user'), 'Unset core.pg.user';
+ok $cmd->execute('engine.pg.user'), 'Unset engine.pg.user';
 is_deeply read_config($cmd->file), {
     'core.foo'    => ['bar', 'baz'],
     'core.engine' => 'funky',
-}, 'core.pg.user should be gone';
+}, 'engine.pg.user should be gone';
 ok $cmd->execute('core.engine'), 'Unset core.engine';
 is_deeply read_config($cmd->file), {
     'core.foo'  => ['bar', 'baz'],

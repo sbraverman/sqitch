@@ -71,14 +71,14 @@ Let's have a look at F<sqitch.conf>:
   	# revert_dir = revert
   	# verify_dir = verify
   	# extension = sql
-  # [core "pg"]
+  # [engine "pg"]
   	# target = db:pg:
   	# registry = sqitch
   	# client = /usr/local/pgsql/bin/psql
 
 Good, it picked up on the fact that we're creating changes for the PostgreSQL
 engine, thanks to the C<--engine pg> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[core "pg"]> section with all the
+Furthermore, it wrote a commented-out C<[engine "pg"]> section with all the
 available PostgreSQL engine-specific settings commented out and ready to be
 edited as appropriate.
 
@@ -87,7 +87,7 @@ settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since PostgreSQL's C<psql> client is not in the path on my system,
 let's go ahead an tell it where to find the client on our computer:
 
-  > sqitch config --user core.pg.client /opt/local/pgsql/bin/psql
+  > sqitch config --user engine.pg.client /opt/local/pgsql/bin/psql
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -98,7 +98,7 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
-  [core "pg"]
+  [engine "pg"]
   	client = /opt/local/pgsql/bin/psql
   [user]
   	name = Marge N. O’Vera
@@ -371,10 +371,11 @@ The L<C<target>|sqitch-target> command, inspired by
 L<C<git-remote>|http://git-scm.com/docs/git-remote>, allows management of one
 or more named deployment targets. We've just added a target named
 C<flipr_test>, which means we can use the string C<flipr_test> for the target,
-rather than the URI. But since we're doing so much testing, we can also tell
-Sqitch to deploy to the C<flipr_test> target by default:
+rather than the URI. But since we're doing so much testing, we can also use
+the The L<C<engine>|sqitch-engine> command to tell Sqitch to deploy to the
+C<flipr_test> target by default:
 
-  > sqitch config core.pg.target flipr_test
+  > sqitch engine add pg flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
@@ -918,6 +919,7 @@ Note the use of C<--show tags> to show all the deployed tags. Now make it so:
 
   > git add .
   [flips e8f4655] Add flips table.
+  > git commit -am 'Add flips table.'
    4 files changed, 37 insertions(+)
    create mode 100644 deploy/flips.sql
    create mode 100644 revert/flips.sql

@@ -121,14 +121,14 @@ Let's have a look at F<sqitch.conf>:
   	# revert_dir = revert
   	# verify_dir = verify
   	# extension = sql
-  # [core "vertica"]
+  # [engine "vertica"]
   	# target = db:vertica:
   	# registry = sqitch
   	# client = vsql
 
 Good, it picked up on the fact that we're creating changes for the Vertica
 engine, thanks to the C<--engine vertica> option, and saved it to the file.
-Furthermore, it wrote a commented-out C<[core "vertica"]> section with all the
+Furthermore, it wrote a commented-out C<[engine "vertica"]> section with all the
 available Vertica engine-specific settings commented out and ready to be
 edited as appropriate.
 
@@ -137,7 +137,7 @@ settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. Since Vertica's C<vsql> client is not in the path on my system,
 let's go ahead an tell it where to find the client on our computer:
 
-  > sqitch config --user core.vertica.client /opt/vertica/bin/vsql
+  > sqitch config --user engine.vertica.client /opt/vertica/bin/vsql
 
 And let's also tell it who we are, since this data will be used in all
 of our projects:
@@ -148,7 +148,7 @@ of our projects:
 Have a look at F<~/.sqitch/sqitch.conf> and you'll see this:
 
   > cat ~/.sqitch/sqitch.conf
-  [core "vertica"]
+  [engine "vertica"]
   	client = /opt/vertica/bin/vsql
   [user]
   	name = Marge N. O’Vera
@@ -425,7 +425,7 @@ C<flipr_test>, which means we can use the string C<flipr_test> for the target,
 rather than the URI. But since we're doing so much testing, we can also tell
 Sqitch to deploy to the C<flipr_test> target by default:
 
-  > sqitch config core.vertica.target flipr_test
+  > sqitch engine add vertica flipr_test
 
 Now we can omit the target argument altogether, unless we need to deploy to
 another database. Which we will, eventually, but at least our examples will be
