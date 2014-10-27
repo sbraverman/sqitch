@@ -31,11 +31,12 @@ BEGIN {
     bind_textdomain_filter 'App-Sqitch' => \&Encode::decode_utf8;
 }
 
-# Okay to load Sqitch classes now that typess are created.
+# Okay to load Sqitch classes now that types are created.
 use App::Sqitch::Config;
 use App::Sqitch::Command;
 use App::Sqitch::Plan;
 
+<<<<<<< HEAD
 has _was_set => (is => 'ro', type => HashRef, default => sub {{}});
 
 has plan_file => (
@@ -194,13 +195,12 @@ has verify_dir => (
 );
 
 has extension => (
+=======
+has options => (
+>>>>>>> 24252a9e1ab8eff30194948c565f7bc9cbbfe106
     is      => 'ro',
-    isa     => Str,
-    lazy    => 1,
-    trigger => sub { shift->_was_set->{extension} = 1 },
-    default => sub {
-        shift->config->get( key => 'core.extension' ) || 'sql';
-    }
+    isa     => HashRef,
+    default => sub { {} },
 );
 
 has verbosity => (
@@ -336,9 +336,7 @@ sub go {
     my $config = App::Sqitch::Config->new;
 
     # 5. Instantiate Sqitch.
-    $opts->{_engine} = delete $opts->{engine} if $opts->{engine};
-    $opts->{config} = $config;
-    my $sqitch = $class->new($opts);
+    my $sqitch = $class->new({ options => $opts, config  => $config });
 
     return try {
         # 6. Instantiate the command object.
@@ -374,10 +372,12 @@ sub go {
 }
 
 sub _core_opts {
+    # TODO: Deprecate --db-client.
     return qw(
         plan-file|f=s
         engine=s
-        db-client=s
+        registry=s
+        client|db-client=s
         db-name|d=s
         db-username|db-user|u=s
         db-host|h=s
@@ -776,31 +776,11 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =over
 
-=item C<plan_file>
-
-=item C<db_client>
-
-=item C<db_name>
-
-=item C<db_username>
+=item C<options>
 
 =item C<user_name>
 
 =item C<user_email>
-
-=item C<db_host>
-
-=item C<db_port>
-
-=item C<top_dir>
-
-=item C<deploy_dir>
-
-=item C<revert_dir>
-
-=item C<verify_dir>
-
-=item C<extension>
 
 =item C<editor>
 
@@ -810,33 +790,17 @@ Constructs and returns a new Sqitch object. The supported parameters include:
 
 =head2 Accessors
 
-=head3 C<plan_file>
-
-=head3 C<db_client>
-
-=head3 C<db_name>
-
-=head3 C<db_username>
-
 =head3 C<user_name>
 
 =head3 C<user_email>
 
-=head3 C<db_host>
-
-=head3 C<db_port>
-
-=head3 C<top_dir>
-
-=head3 C<deploy_dir>
-
-=head3 C<revert_dir>
-
-=head3 C<verify_dir>
-
-=head3 C<extension>
-
 =head3 C<editor>
+
+=head3 C<options>
+
+  my $options = $sqitch->options;
+
+Returns a hashref of the core command-line options.
 
 =head3 C<config>
 

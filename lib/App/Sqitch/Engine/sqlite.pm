@@ -17,18 +17,6 @@ extends 'App::Sqitch::Engine';
 
 our $VERSION = '0.997';
 
-sub BUILD {
-    my $self = shift;
-    my $uri  = $self->uri;
-    unless ($uri->dbname) {
-        my $sqitch = $self->sqitch;
-        # XXX Config var is for backcompat.
-        my $name =  $sqitch->config->get( key => 'core.sqlite.db_name' )
-            || try { $sqitch->plan->project . '.db' };
-        $uri->dbname($name) if $name;
-    }
-}
-
 has registry_uri => (
     is       => 'ro',
     isa      => URIDB,
@@ -38,10 +26,7 @@ has registry_uri => (
         my $uri  = $self->uri->clone;
         my $reg  = $self->registry;
 
-        if (my $db = $self->sqitch->config->get( key => 'core.sqlite.sqitch_db' ) ) {
-            # ### Deprecated Sqitch database file name.
-            $uri->dbname($db);
-        } elsif ( file($reg)->is_absolute ) {
+        if ( file($reg)->is_absolute ) {
             # Just use an absolute path.
             $uri->dbname($reg);
         } elsif (my @segs = $uri->path_segments) {
@@ -269,10 +254,10 @@ App::Sqitch::Engine::sqlite provides the SQLite storage engine for Sqitch.
 
 =head3 C<client>
 
-Returns the path to the SQLite client. If C<--db-client> was passed to
-C<sqitch>, that's what will be returned. Otherwise, it uses the
-C<core.sqlite.client> configuration value, or else defaults to C<sqlite3> (or
-C<sqlite3.exe> on Windows), which should work if it's in your path.
+Returns the path to the SQLite client. If C<--client> was passed to C<sqitch>,
+that's what will be returned. Otherwise, it uses the C<engine.sqlite.client>
+configuration value, or else defaults to C<sqlite3> (or C<sqlite3.exe> on
+Windows), which should work if it's in your path.
 
 =head2 Instance Methods
 

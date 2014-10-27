@@ -54,7 +54,7 @@ has template_name => (
     is       => 'ro',
     isa      => Str,
     lazy     => 1,
-    default  => sub { shift->sqitch->engine_key },
+    default  => sub { shift->default_target->engine_key },
 );
 
 has with_scripts => (
@@ -201,7 +201,17 @@ sub _parse_opts {
 
     # Merge with and without.
     $opts{with_scripts} = {
-        ( map { $_ => delete $opts{$_} // 1 } qw(deploy revert verify) ),
+        ( map {
+            if (exists $opts{$_}) {
+                App::Sqitch->warn(__x(
+                    'Option --{opt} has been deprecated; use "--{with} {val}" instead',
+                    opt  => $_,
+                    with => $opts{$_} ? 'with' : 'without',
+                    val  => $_
+                ));
+            }
+            $_ => delete $opts{$_} // 1;
+        } qw(deploy revert verify) ),
         ( map { $_ => 1 } @{ delete $opts{with}    || [] } ),
         ( map { $_ => 0 } @{ delete $opts{without} || [] } ),
     };
@@ -210,7 +220,13 @@ sub _parse_opts {
     for my $script (qw(deploy revert verify)) {
         next unless exists $opts{"$script\_template"};
         $opts{use} ||= {};
-        $opts{use}{$script} = delete $opts{"$script\_template"}
+        $opts{use}{$script} = delete $opts{"$script\_template"};
+        App::Sqitch->warn(__x(
+            'Option --{opt} has been deprecated; use "--use {key}={val}" instead',
+            opt => "$script-template",
+            key => $script,
+            val => $opts{use}{$script},
+        ));
     }
 
     return \%opts;
@@ -275,8 +291,8 @@ sub configure {
 sub execute {
     my ( $self, $name ) = @_;
     $self->usage unless defined $name;
-    my $sqitch = $self->sqitch;
-    my $plan   = $sqitch->plan;
+    my $target = $self->default_target;
+    my $plan   = $target->plan;
     my $with   = $self->with_scripts;
     my $tmpl   = $self->all_templates;
     my $change = $plan->add(
@@ -302,15 +318,16 @@ sub execute {
     $self->_add( $name, $files[$i++], $tmpl->{$_} ) for @scripts;
 
     # We good, write the plan file back out.
-    $plan->write_to( $sqitch->plan_file );
+    $plan->write_to( $target->plan_file );
     $self->info(__x(
         'Added "{change}" to {file}',
         change => $change->format_op_name_dependencies,
-        file   => $sqitch->plan_file,
+        file   => $target->plan_file,
     ));
 
     # Let 'em at it.
     if ($self->open_editor) {
+        my $sqitch = $self->sqitch;
         $sqitch->shell( $sqitch->editor . ' ' . $sqitch->quote_shell(@files) );
     }
 

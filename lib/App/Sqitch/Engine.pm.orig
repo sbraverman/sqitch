@@ -22,15 +22,16 @@ has sqitch => (
 );
 
 has target => (
-    is       => 'ro',
-    isa      => Target,
-    required => 1,
-    weak_ref => 1,
-    handles => {
-        uri         => 'uri',
-        client      => 'client',
-        registry    => 'registry',
-        destination => 'name',
+<<<<<<< HEAD
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    trigger => sub { shift->_target_set(1) }, # Excludes default and built values.
+    default => sub {
+        my $self = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "core.$engine.target")
+            || $self->uri->as_string;
     }
 );
 
@@ -53,6 +54,38 @@ has provider => (
         my $self = shift;
         my $engine = $self->key;
         return $self->sqitch->config->get( key => "core.$engine.provider");
+    }
+);
+
+has destination => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self = shift;
+
+        # Just use the target unless it looks like a URI.
+        my $target = $self->target;
+        return $target if $target !~ /:/;
+
+        # Use the URI sans password.
+        my $uri = $self->uri;
+        if ($uri->password) {
+            $uri = $uri->clone;
+            $uri->password(undef);
+        }
+        return $uri->as_string;
+=======
+    is       => 'ro',
+    isa      => Target,
+    required => 1,
+    weak_ref => 1,
+    handles => {
+        uri         => 'uri',
+        client      => 'client',
+        registry    => 'registry',
+        destination => 'name',
+>>>>>>> 24252a9e1ab8eff30194948c565f7bc9cbbfe106
     }
 );
 
