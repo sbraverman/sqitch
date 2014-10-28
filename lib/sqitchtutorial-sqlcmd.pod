@@ -722,7 +722,7 @@ Great, we're fully up-to-date!
 Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
 to have it go out with deployments tied to the release, let's tag it:
 
-  > sqitch tag v1.0.0-dev1 -m 'Tag v1.0.0-dev1.'
+  > sqitch tag v1.0.0-dev1 -m "Tag v1.0.0-dev1."
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
   [master 0595297] Tag the database with v1.0.0-dev1.
@@ -757,7 +757,7 @@ Now enter the following to repoint the deployment:
 
 Let's have a look at F<sqitch.conf> now:
 
-  > cat sqitch.conf
+  > textpad sqitch.conf
   [core]
   	engine = sqlcmd
   	plan_file = sqitch.plan
