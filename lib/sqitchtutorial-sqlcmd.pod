@@ -403,7 +403,7 @@ this:
   	)
   );
 
-  GRANT SELECT ON TABLE dbo.users TO flipr;
+  GRANT SELECT ON dbo.users TO flipr;
   
   IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA
   = 'sqitch' AND TABLE_NAME = 'users')
