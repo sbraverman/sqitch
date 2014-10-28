@@ -916,8 +916,6 @@ And the C<delete_flip> deploy script might look something like:
 
   GRANT EXECUTE ON delete_flip to flipr;
 
-  COMMIT;
-
 The C<verify> scripts are:
 
   -- Verify insert_flip
