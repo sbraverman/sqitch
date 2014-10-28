@@ -912,7 +912,6 @@ And the C<delete_flip> deploy script might look something like:
       @flip_id INT
   AS
       DELETE FROM flips WHERE id = @flip_id;
-      RETURN ROW_COUNT();
 
   GRANT EXECUTE ON delete_flip to flipr;
 
