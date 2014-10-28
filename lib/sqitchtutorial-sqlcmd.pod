@@ -1207,7 +1207,7 @@ release:
   > git commit -am "Tag the database with v1.0.0-dev2."
   [master 76d6e15] Tag the database with v1.0.0-dev2.
    1 file changed, 1 insertion(+)
-  > git tag v1.0.0-dev2 -am 'Tag v1.0.0-dev2'
+  > git tag v1.0.0-dev2 -am "Tag v1.0.0-dev2"
   > sqitch bundle --dest-dir flipr-1.0.0-dev2
   Bundling into flipr-1.0.0-dev2
   Writing config
