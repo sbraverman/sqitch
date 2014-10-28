@@ -722,7 +722,7 @@ Great, we're fully up-to-date!
 Let's do a first release of our app. Let's call it C<1.0.0-dev1> Since we want
 to have it go out with deployments tied to the release, let's tag it:
 
-  > sqitch tag v1.0.0-dev1 -n 'Tag v1.0.0-dev1.'
+  > sqitch tag v1.0.0-dev1 -m 'Tag v1.0.0-dev1.'
   Tagged "change_pass" with @v1.0.0-dev1
   > git commit -am 'Tag the database with v1.0.0-dev1.'
   [master 0595297] Tag the database with v1.0.0-dev1.
@@ -752,7 +752,7 @@ First, create a new database on a server, say the flipr database on the sdhis4 s
   
 Now enter the following to repoint the deployment:
 
-  > sqitch config core.sqlcmd.target flipr_live
+  > sqitch config engine.sqlcmd.target flipr_live
   > sqitch config target.flipr_live.uri db:sqlcmd:@//sdhis4/flipr
 
 Let's have a look at F<sqitch.conf> now:
@@ -766,7 +766,7 @@ Let's have a look at F<sqitch.conf> now:
   	revert_dir = revert
   	verify_dir = verify
   	extension = sql
-  [core "sqlcmd"]
+  [engine "sqlcmd"]
   	target = flipr_live
   	registry = sqitch
   	client = sqlcmd.exe
