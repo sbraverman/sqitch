@@ -774,7 +774,7 @@ Let's have a look at F<sqitch.conf> now:
   	provider = SQLNCLI10.1
   	uri = DBI:ADO
   [target "flipr_test"]
-  	uri = db:sqlcmd://@sdh12991/flipr_test
+  	uri = db:sqlcmd://@localhost/flipr_test
   [target "flipr_live"]
   	uri = db:sqlcmd://@sdhis4/flipr
 
