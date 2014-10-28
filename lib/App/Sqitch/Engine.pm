@@ -41,7 +41,7 @@ has integrated_security => (
     default => sub {
         my $self = shift;
         my $engine = $self->key;
-        return $self->sqitch->config->get( key => "core.$engine.integrated_security");
+        return $self->sqitch->config->get( key => "engine.$engine.integrated_security");
     }
 );
 
@@ -52,7 +52,7 @@ has provider => (
     default => sub {
         my $self = shift;
         my $engine = $self->key;
-        return $self->sqitch->config->get( key => "core.$engine.provider");
+        return $self->sqitch->config->get( key => "engine.$engine.provider");
     }
 );
 
