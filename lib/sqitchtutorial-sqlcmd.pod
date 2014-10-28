@@ -825,7 +825,7 @@ each other's way. So let's branch:
 
 Now we can add a new change to create a table for our flips.
 
-  > sqitch add flips -r appuser -r users -m 'Adds table for storing flips.'
+  > sqitch add flips -r appuser -r users -m "Adds table for storing flips."
   Created deploy/flips.sql
   Created revert/flips.sql
   Created verify/flips.sql
