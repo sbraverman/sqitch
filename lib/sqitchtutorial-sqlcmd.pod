@@ -629,10 +629,7 @@ Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
          SET password = HashBytes('sha1',@newpass)
        WHERE nickname = @nickname
          AND password = HashBytes('sha1',@oldpass);
-      RETURN ROW_COUNT();
-  END;
-
-
+      
   GRANT EXECUTE ON change_pass to flipr;
 
 
