@@ -214,7 +214,7 @@ used to manage I<all> projects on the database. Ideally, only Sqitch
 data will be stored in this schema.
 
 If you'd like it to use a different schema, use
-C<sqitch config core.mysql.registry $name> to configure it (or via the
+C<sqitch config engine.sqlcmd.registry $name> to configure it (or via the
 L<C<target> command|sqitch-target>; more L<below|/On Target>).
 
 Next, Sqitch deploys changes to the target database, which we specified on the
