@@ -39,7 +39,7 @@ source code repository. So let's do that with Git:
   > cd flipr 
   > git init .
   Initialized empty Git repository in /flipr/.git/
-  > touch README.md
+  > textpad README.md
   > git add .
   > git commit -am 'Initialize project, add README.'
   [master (root-commit) fdf2a40] Initialize project, add README.
@@ -63,7 +63,7 @@ identifiers internally, so let's specify one when we initialize Sqitch:
 
 Let's have a look at F<sqitch.conf>:
 
-  > cat sqitch.conf
+  > textpad sqitch.conf
   [core]
   	engine = sqlcmd
   	# plan_file = sqitch.plan
@@ -72,7 +72,7 @@ Let's have a look at F<sqitch.conf>:
   	# revert_dir = revert
   	# verify_dir = verify
   	# extension = sql
-  # [core "sqlcmd"]
+  # [engine "sqlcmd"]
   	# target = db:sqlcmd:
   	# registry = sqitch
   	# client = sqlcmd.exe
