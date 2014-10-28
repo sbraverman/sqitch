@@ -855,10 +855,7 @@ And give it a whirl:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + appuser ................... ok
-    + users ..................... ok
-    + insert_user ............... ok
-    + change_pass @v1.0.0-dev1 .. ok
+    + flips ................... ok
 
 Look good?
 
