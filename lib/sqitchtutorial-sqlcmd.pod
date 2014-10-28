@@ -753,7 +753,7 @@ First, create a new database on a server, say the flipr database on the sdhis4 s
 Now enter the following to repoint the deployment:
 
   > sqitch config engine.sqlcmd.target flipr_live
-  > sqitch config target.flipr_live.uri db:sqlcmd:@//sdhis4/flipr
+  > sqitch config target.flipr_live.uri db:sqlcmd://@sdhis4/flipr
 
 Let's have a look at F<sqitch.conf> now:
 
