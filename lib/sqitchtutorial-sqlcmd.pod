@@ -1027,7 +1027,7 @@ VCS is not Git.
 So let's restore things to how they were at master:
 
   > git reset --hard HEAD
-  HEAD is now at 5a58089 Merge branch 'lists'
+  HEAD is now at 5a58089 Add flipr schema.
 
 That throws out our botched merge. Now let's go back to our branch and rebase
 it on C<master>:
