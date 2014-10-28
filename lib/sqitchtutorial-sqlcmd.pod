@@ -724,10 +724,10 @@ to have it go out with deployments tied to the release, let's tag it:
 
   > sqitch tag v1.0.0-dev1 -m "Tag v1.0.0-dev1."
   Tagged "change_pass" with @v1.0.0-dev1
-  > git commit -am 'Tag the database with v1.0.0-dev1.'
+  > git commit -am "Tag the database with v1.0.0-dev1."
   [master 0595297] Tag the database with v1.0.0-dev1.
    1 file changed, 1 insertion(+)
-  > git tag v1.0.0-dev1 -am 'Tag v1.0.0-dev1'
+  > git tag v1.0.0-dev1 -am "Tag v1.0.0-dev1"
 
 Now let's bundle everything up for release:
 
