@@ -1423,7 +1423,7 @@ Make sure these pass by re-deploying:
 Excellent. Let's go ahead and commit this change:
 
   > git add .
-  > git commit -m 'Use current_timestamp.'
+  > git commit -m "Use current_timestamp."
   [master abcce73] Use current_timestamp.
    13 files changed, 137 insertions(+), 9 deletions(-)
   
