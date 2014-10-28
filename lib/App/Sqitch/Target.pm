@@ -51,12 +51,7 @@ has engine => (
 
 # TODO: core.$engine is deprecated. Remove this workaround and warning
 # when it is removed.
-has _warned => (
-    is      => 'rw',
-    isa     => Bool,
-    default => $ENV{HARNESS_ACTIVE},
-);
-
+our $WARNED  = $ENV{HARNESS_ACTIVE};
 sub _engine_var {
     my ($self, $config, $ekey, $akey) = @_;
     return unless $ekey;
@@ -66,13 +61,13 @@ sub _engine_var {
 
     # Look for the deprecated config section.
     my $val = $config->get( key => "core.$ekey.$akey" ) or return;
-    return $val if $self->_warned;
+    return $val if $WARNED;
     App::Sqitch->warn(__x(
         "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
         . q{Run 'sqitch engine update-config' to update your configurations.},
         engine => $ekey,
     ));
-    $self->_warned(1);
+    $WARNED = 1;
     return $val;
 }
 
@@ -85,7 +80,7 @@ sub _fetch {
 
     my $config = $sqitch->config;
     return $config->get( key => "target." . $self->name . ".$key" )
-        || $self->_engine_var($config, $self->engine_key, $key)
+        || $self->_engine_var($config, scalar $self->engine_key, $key)
         || $config->get( key => "core.$key");
 }
 
@@ -273,8 +268,8 @@ sub BUILDARGS {
             "The core.{engine} config has been deprecated in favor of engine.{engine}.\n"
             . q{Run 'sqitch engine update-config' to update your configurations.},
             engine => $ekey,
-        )) unless $ENV{HARNESS_ACTIVE};
-        $p->{_warned} = 1;
+        )) unless $WARNED;
+        $WARNED = 1;
     }
 
     my @deprecated;
