@@ -241,7 +241,7 @@ will be thrown.
 
 Give it a try. Put this query into F<verify/appuser.sql>:
 
-  sqitch.verify "SELECT COUNT(*) FROM sys.sysusers WHERE user = 'flipr'";
+  sqitch.verify "SELECT COUNT(*) FROM sys.sysusers WHERE name = 'flipr'";
 
 This will work well as long as we know that the registry schema is named
 C<sqitch>. If you've set C<core.sqlcmd.registry> to a different value, you
@@ -259,7 +259,7 @@ Looks good! If you want to make sure that the verify script correctly dies if
 the table doesn't exist, temporarily change the user name in the script to
 something that doesn't exist, something like:
 
-  sqitch.verify "SELECT COUNT(*) FROM sys.sysusers WHERE user = 'nonesuch'";
+  sqitch.verify "SELECT COUNT(*) FROM sys.sysusers WHERE name = 'nonesuch'";
 
 
 Then L<C<verify>|sqitch-verify> again:
