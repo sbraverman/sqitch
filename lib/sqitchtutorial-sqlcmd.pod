@@ -1142,8 +1142,8 @@ them all again in the proper order. So let's commit F<.gitattributes>; seems
 worthwhile to keep that change:
 
   > git add .
-  > git commit -m 'Add `.gitattributes` with union merge for `sqitch.plan`.'
-  [flips d813f7c] Add `.gitattributes` with union merge for `sqitch.plan`.
+  > git commit -m "Add '.gitattributes' with union merge for 'sqitch.plan'."
+  [flips d813f7c] Add '.gitattributes' with union merge for 'sqitch.plan'.
    1 file changed, 1 insertion(+)
    create mode 100644 .gitattributes
 
