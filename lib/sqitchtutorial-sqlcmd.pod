@@ -1092,7 +1092,7 @@ and rebase again:
 
 Ah, that looks a bit better. Let's have a look at the plan:
 
-  > cat sqitch.plan
+  > textpad sqitch.plan
   %syntax-version=1.0.0-b2
   %project=flipr
   %uri=https://github.com/theory/sqitch-sqlcmd-intro/
