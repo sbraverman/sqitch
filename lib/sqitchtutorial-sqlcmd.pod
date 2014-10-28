@@ -590,8 +590,6 @@ F<deploy/insert_user.sql> should look like:
   AS
       INSERT INTO users (nickname, password, timestamp)
       VALUES (@nickname, HashBytes('sha1',@password),GETDATE());
-  END
-
 
   GRANT EXECUTE ON insert_user to flipr;
 
