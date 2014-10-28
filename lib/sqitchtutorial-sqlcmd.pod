@@ -855,7 +855,7 @@ And give it a whirl:
 
   > sqitch deploy
   Deploying changes to flipr_test
-    + flips ................... ok
+    + flips .. ok
 
 Look good?
 
