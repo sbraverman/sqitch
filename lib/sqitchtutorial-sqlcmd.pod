@@ -1276,7 +1276,7 @@ section. With that, we can let Sqitch do most of the hard work for us, thanks
 to the L<C<rework>|sqitch-rework> command, which is similar to
 L<C<add>|sqitch-add>:
 
-  > sqitch rework insert_user -m 'Change insert_user to use current_timestamp.'
+  > sqitch rework insert_user -m "Change insert_user to use current_timestamp."
   Added "insert_user [insert_user@v1.0.0-dev2]" to sqitch.plan.
   Modify these files as appropriate:
     * deploy/insert_user.sql
