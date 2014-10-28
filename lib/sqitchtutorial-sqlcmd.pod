@@ -899,7 +899,7 @@ and commit them. The C<insert_flip> deploy script might look something like:
       INSERT INTO flips (nickname, body)
       VALUES (@nickname, @body);
 
-  GRANT EXECUTE insert_flip to flipr;
+  GRANT EXECUTE ON insert_flip to flipr;
 
 
 And the C<delete_flip> deploy script might look something like:
