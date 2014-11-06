@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.997
+Version:        0.998
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -272,6 +272,9 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Tue Nov 4 2014 David E. Wheeler <david.wheeler@iovation.com> 0.997-1
+- Upgrade to v0.997.
+
 * Fri Sep 5 2014 David E. Wheeler <david.wheeler@iovation.com> 0.996-1
 - Upgrade to v0.996.
 - Remove Moose and Mouse dependencies.
