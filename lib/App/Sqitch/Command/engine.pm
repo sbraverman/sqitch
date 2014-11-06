@@ -25,7 +25,7 @@ use constant ENGINES => qw(
 
 extends 'App::Sqitch::Command';
 
-our $VERSION = '0.997';
+our $VERSION = '0.998';
 
 has verbose => (
     is      => 'ro',
@@ -282,12 +282,28 @@ sub update_config {
         $config->system_file,
     ) {
         $sqitch->emit(__x( 'Loading {file}', file => $file ));
+        # Hide all other files. Just want to deal with the one.
+        local $ENV{SQITCH_CONFIG}        = '/dev/null/not.conf';
+        local $ENV{SQITCH_USER_CONFIG}   = '/dev/null/not.user';
+        local $ENV{SQITCH_SYSTEM_CONFIG} = '/dev/null/not.sys';
         my $c = App::Sqitch::Config->new;
         $c->load_file($file);
         my %engines;
         for my $ekey (ENGINES) {
             my $sect = $c->get_section( section => "core.$ekey");
-            $engines{$ekey} = $sect if %{ $sect };
+            if (%{ $sect }) {
+                if (%{ $c->get_section( section => "engine.$ekey") }) {
+                    $sqitch->warn('  - ' . __x(
+                        "Deprecated {section} found in {file}; to remove it, run\n    {sqitch} config --file {file} --remove-section {section}",
+                        section => "core.$ekey",
+                        file    => $file,
+                        sqitch  => $0,
+                    ));
+                    next;
+                }
+                # Migrate this one.
+                $engines{$ekey} = $sect;
+            }
         }
         unless (%engines) {
             $sqitch->emit(__ '  - No engines to update');
@@ -347,15 +363,17 @@ sub update_config {
 
             # Create the new variables and delete the old section.
             $config->group_set( $file, \@new );
-            $c->rename_section(
-                from     => "core.$ekey",
-                filename => $file,
-            );
+            # $c->rename_section(
+            #     from     => "core.$ekey",
+            #     filename => $file,
+            # );
 
             $sqitch->emit('  - ' . __x(
-                'Renamed {old} to {new}',
-                old => "core.$ekey",
-                new => "engine.$ekey",
+                "Migrated {old} to {new}; To remove {old}, run\n    {sqitch} config --file {file} --remove-section {old}",
+                old    => "core.$ekey",
+                new    => "engine.$ekey",
+                sqitch => $0,
+                file   => $file,
             ));
         }
     }
