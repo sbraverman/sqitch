@@ -221,11 +221,8 @@ sub initialize {
     };
 
     # Load up our database. The database must exist!
-    my @cmd    = $self->isql;
-    $cmd[-1]   = $sqitch_db;
-    my $file   = file(__FILE__)->dir->file('firebird.sql');
-    my $sqitch = $self->sqitch;
-    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
+    $self->run_upgrade( file(__FILE__)->dir->file('firebird.sql') );
+    $self->_register_release;
 }
 
 sub connection_string {
@@ -278,7 +275,7 @@ sub _dt($) {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr && $DBI::errstr =~ /^\Q\-Table unknown/; # ???
+    return $DBI::errstr && $DBI::errstr =~ /^-Table unknown|No such file or directory/m;
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
@@ -330,6 +327,15 @@ sub run_verify {
     $self->$meth( '-input' => $file );
 }
 
+sub run_upgrade {
+    my ($self, $file) = @_;
+    my $uri    = $self->registry_uri;
+    my @cmd    = $self->isql;
+    $cmd[-1]   = $self->connection_string($uri);
+    my $sqitch = $self->sqitch;
+    $sqitch->run( @cmd, '-input' => $sqitch->quote_shell($file) );
+}
+
 sub run_handle {
     my ($self, $fh) = @_;
     $self->_spool($fh);
@@ -362,35 +368,41 @@ sub current_state {
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
-    my $dbh    = $self->dbh;
+    my $state  = try {
+        $self->dbh->selectrow_hashref(qq{
+            SELECT FIRST 1 c.change_id
+                 , c.script_hash
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , $cdtcol AS committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , $pdtcol AS planned_at
+                 , $tagcol AS tags
+              FROM changes   c
+              LEFT JOIN tags t ON c.change_id = t.change_id
+             WHERE c.project = ?
+             GROUP BY c.change_id
+                 , c.script_hash
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , c.committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , c.planned_at
+             ORDER BY c.committed_at DESC
+        }, undef, $project // $self->plan->project );
+    } catch {
+        return if $self->_no_table_error && !$self->initialized;
+        die $_;
+    } or return undef;
 
-    my $state  = $dbh->selectrow_hashref(qq{
-        SELECT FIRST 1 c.change_id
-             , c.change
-             , c.project
-             , c.note
-             , c.committer_name
-             , c.committer_email
-             , $cdtcol AS committed_at
-             , c.planner_name
-             , c.planner_email
-             , $pdtcol AS planned_at
-             , $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
-         WHERE c.project = ?
-         GROUP BY c.change_id
-             , c.change
-             , c.project
-             , c.note
-             , c.committer_name
-             , c.committer_email
-             , c.committed_at
-             , c.planner_name
-             , c.planner_email
-             , c.planned_at
-         ORDER BY c.committed_at DESC
-    }, undef, $project // $self->plan->project ) or return undef;
     unless (ref $state->{tags}) {
         $state->{tags} = $state->{tags} ? [ split / / => $state->{tags} ] : [];
     }
@@ -755,6 +767,7 @@ sub log_deploy_change {
     my $ts = $self->_ts_default;
     my $cols = join "\n            , ", $self->_quote_idents(qw(
         change_id
+        script_hash
         change
         project
         note
@@ -769,9 +782,10 @@ sub log_deploy_change {
         INSERT INTO changes (
             $cols
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
         $id,
+        $change->script_hash,
         $name,
         $proj,
         $change->note,
@@ -873,6 +887,27 @@ sub default_client {
     hurl firebird => __(
         'Unable to locate Firebird ISQL; set "engine.firebird.client" via sqitch config'
     );
+}
+
+sub _update_script_hashes {
+    my $self = shift;
+    my $plan = $self->plan;
+    my $proj = $plan->project;
+    my $dbh  = $self->dbh;
+
+    $self->begin_work;
+    # Firebird refuses to update via a prepared statement, so use do(). :-(
+    $dbh->do(
+        'UPDATE changes SET script_hash = ? WHERE change_id = ?',
+        undef, $_->script_hash, $_->id
+    ) for $plan->changes;
+    $dbh->do(q{
+        UPDATE changes SET script_hash = NULL
+         WHERE project = ? AND script_hash = change_id
+    }, undef, $proj);
+
+    $self->finish_work;
+    return $self;
 }
 
 1;

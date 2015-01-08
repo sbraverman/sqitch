@@ -17,7 +17,6 @@ CREATE TABLE projects (
 
 CREATE TABLE changes (
     change_id       TEXT        PRIMARY KEY,
-    script_hash     TEXT            NULL UNIQUE,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,
     note            TEXT        NOT NULL DEFAULT '',
@@ -56,7 +55,7 @@ CREATE TABLE dependencies (
 );
 
 CREATE TABLE events (
-    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail', 'merge')),
+    event           TEXT        NOT NULL CHECK (event IN ('deploy', 'revert', 'fail')),
     change_id       TEXT        NOT NULL,
     change          TEXT        NOT NULL,
     project         TEXT        NOT NULL REFERENCES projects(project) ON UPDATE CASCADE,

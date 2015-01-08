@@ -4,6 +4,24 @@ Revision history for Perl extension App::Sqitch
      - Fixed a bug in `sqitch engine update-config` where it would add data to
        config files that did not previously have them, or report that data was
        present in nonexistent config files.
+     - Added the `releases` table to the databases. This table will keep track
+       of releases of the Sqitch registry schema.
+     - The Oracle `registry` variable is now always `DEFINE`d when Oracle
+       scripts run.
+     - Added the `upgrade` command, which upgrades the schema for the Sqitch
+       registry for a target database.
+     - Added the `script_hash` column to the `changes` registry table. This
+       column contains a SHA-1 hash of the deploy script for the change at the
+       time it was deployed. For existing registries, the upgrade script sets
+       its value to be the same as the change ID. This value is update the
+       next time a project is deployed to the database.
+     - The error message when `deploy` cannot find the currently-deployed
+       change ID in the plan now includes more contextual information,
+       including the change name, associated tags, and the plan file name.
+       Suggested by Curtis Poe (Issue #205).
+     - Comments on Firebird registry objects are now created with the
+       `COMMENT` command, rather than INSERTs into catalog tables.
+     - Added support for "merge" events, though none are logged, yet.
 
 0.997 2014-11-04T22:52:23Z
      [New Features]

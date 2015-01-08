@@ -206,35 +206,43 @@ sub current_state {
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $dbh    = $self->dbh;
-    my $state  = $dbh->selectrow_hashref(qq{
-        SELECT * FROM (
-            SELECT c.change_id
-                 , c.change
-                 , c.project
-                 , c.note
-                 , c.committer_name
-                 , c.committer_email
-                 , $cdtcol AS committed_at
-                 , c.planner_name
-                 , c.planner_email
-                 , $pdtcol AS planned_at
-                 , $tagcol AS tags
-              FROM changes   c
-              LEFT JOIN tags t ON c.change_id = t.change_id
-             WHERE c.project = ?
-             GROUP BY c.change_id
-                 , c.change
-                 , c.project
-                 , c.note
-                 , c.committer_name
-                 , c.committer_email
-                 , c.committed_at
-                 , c.planner_name
-                 , c.planner_email
-                 , c.planned_at
-             ORDER BY c.committed_at DESC
-        ) WHERE rownum = 1
-    }, undef, $project // $self->plan->project) or return undef;
+    my $state  = try { 
+        $dbh->selectrow_hashref(qq{
+            SELECT * FROM (
+                SELECT c.change_id
+                     , c.script_hash
+                     , c.change
+                     , c.project
+                     , c.note
+                     , c.committer_name
+                     , c.committer_email
+                     , $cdtcol AS committed_at
+                     , c.planner_name
+                     , c.planner_email
+                     , $pdtcol AS planned_at
+                     , $tagcol AS tags
+                  FROM changes   c
+                  LEFT JOIN tags t ON c.change_id = t.change_id
+                 WHERE c.project = ?
+                 GROUP BY c.change_id
+                     , c.script_hash
+                     , c.change
+                     , c.project
+                     , c.note
+                     , c.committer_name
+                     , c.committer_email
+                     , c.committed_at
+                     , c.planner_name
+                     , c.planner_email
+                     , c.planned_at
+                 ORDER BY c.committed_at DESC
+            ) WHERE rownum = 1
+        }, undef, $project // $self->plan->project);
+    } catch {
+        return if $self->_no_table_error && !$self->initialized;
+        die $_;
+    } or return undef;
+
     $state->{committed_at} = _dt $state->{committed_at};
     $state->{planned_at}   = _dt $state->{planned_at};
     return $state;
@@ -388,6 +396,17 @@ sub is_deployed_tag {
     )->[0];
 }
 
+sub _registry_variable {
+    my $self   = shift;
+    my $schema = $self->registry;
+    return $schema ? ("DEFINE registry=$schema") : (
+        # Select the current schema into &registry.
+        # http://www.orafaq.com/node/515
+        'COLUMN sname for a30 new_value registry',
+        q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL;},
+    );
+}
+
 sub initialize {
     my $self   = shift;
     my $schema = $self->registry;
@@ -395,24 +414,9 @@ sub initialize {
 
     # Load up our database.
     (my $file = file(__FILE__)->dir->file('oracle.sql')) =~ s/"/""/g;
-    my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-
-    $self->$meth(
-        (
-            $schema ? (
-                "DEFINE registry=$schema"
-            ) : (
-                # Select the current schema into &registry.
-                # http://www.orafaq.com/node/515
-                'COLUMN sname for a30 new_value registry',
-                q{SELECT SYS_CONTEXT('USERENV', 'SESSION_SCHEMA') AS sname FROM DUAL;},
-            )
-        ),
-        qq{\@"$file"}
-    );
-
+    $self->_run_with_verbosity($file);
     $self->dbh->do("ALTER SESSION SET CURRENT_SCHEMA = $schema") if $schema;
-    return $self;
+    $self->_register_release;
 }
 
 # Override for special handling of regular the expression operator and
@@ -572,13 +576,16 @@ sub run_file {
     $self->_run(qq{\@"$file"});
 }
 
-sub run_verify {
+sub _run_with_verbosity {
     my $self = shift;
     my $file = $self->_file_for_script(shift);
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
     $self->$meth(qq{\@"$file"});
 }
+
+sub run_upgrade { shift->_run_with_verbosity(@_) }
+sub run_verify  { shift->_run_with_verbosity(@_) }
 
 sub run_handle {
     my ($self, $fh) = @_;
@@ -669,6 +676,7 @@ sub _script {
         'WHENEVER SQLERROR EXIT SQL.SQLCODE;',
         (map {; (my $v = $vars{$_}) =~ s/"/""/g; qq{DEFINE $_="$v"} } sort keys %vars),
         "connect $conn",
+        $self->_registry_variable,
         @_
     );
 }

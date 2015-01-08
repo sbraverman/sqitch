@@ -6,11 +6,13 @@ use strict;
 use utf8;
 use Try::Tiny;
 use Locale::TextDomain qw(App-Sqitch);
+use Path::Class qw(file);
 use App::Sqitch::X qw(hurl);
 use List::Util qw(first max);
 use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
+use constant registry_release => '1.0';
 
 our $VERSION = '0.998';
 
@@ -201,8 +203,10 @@ sub deploy {
         return $self;
 
     } elsif ($plan->position == -1) {
-        # Initialize the database, if necessary.
-        unless ($self->initialized) {
+        # Initialize or upgrade the database, if necessary.
+        if ($self->initialized) {
+            $self->upgrade_registry if $self->needs_upgrade;
+        } else {
             $sqitch->info(__x(
                 'Adding registry tables to {destination}',
                 destination => $self->registry_destination,
@@ -215,6 +219,8 @@ sub deploy {
         # Make sure that $to_index is greater than the current point.
         hurl deploy => __ 'Cannot deploy to an earlier change; use "revert" instead'
             if $to_index < $plan->position;
+        # Upgrade database if it needs it.
+        $self->upgrade_registry if $self->needs_upgrade;
     }
 
     $sqitch->info(
@@ -250,6 +256,7 @@ sub deploy {
 
 sub revert {
     my ( $self, $to ) = @_;
+    $self->_check_registry;
     my $sqitch = $self->sqitch;
     my $plan   = $self->plan;
 
@@ -545,9 +552,10 @@ sub verify_change {
     return $self;
 }
 
-sub run_deploy { shift->run_file(@_) }
-sub run_revert { shift->run_file(@_) }
-sub run_verify { shift->run_file(@_) }
+sub run_deploy  { shift->run_file(@_) }
+sub run_revert  { shift->run_file(@_) }
+sub run_verify  { shift->run_file(@_) }
+sub run_upgrade { shift->run_file(@_) }
 
 sub check_deploy_dependencies {
     my ( $self, $plan, $to_index ) = @_;
@@ -841,18 +849,23 @@ sub _sync_plan {
 
     
       if ($self->initialized == 1) {
-       if (my $id = $self->latest_change_id) {
-        my $idx = $plan->index_of($id) // hurl plan => __x(
-            'Cannot find {change} in the plan',
-            change => $id
+    if (my $state = $self->current_state) {
+        my $idx = $plan->index_of($state->{change_id}) // hurl plan => __x(
+            'Cannot find change {id} ({change}) in {file}',
+            id     => $state->{change_id},
+            change => join(' ', $state->{change}, @{ $state->{tags} || [] }),
+            file   => $plan->file,
         );
 
         my $change = $plan->change_at($idx);
-        if ($id eq $change->old_id) {
+        if ($state->{change_id} eq $change->old_id) {
             # Old IDs need to be replaced.
             $idx    = $self->_update_ids;
             $change = $plan->change_at($idx);
         }
+
+        $self->_update_script_hashes if $state->{script_hash}
+            && $state->{script_hash} eq $state->{change_id};
 
         $plan->position($idx);
         if (my @tags = $change->tags) {
@@ -972,6 +985,75 @@ sub latest_change {
     my $self = shift;
     my $change_id = $self->latest_change_id(@_) // return undef;
     return $self->plan->get( $change_id );
+}
+
+sub needs_upgrade {
+    my $self = shift;
+    $self->registry_version != $self->registry_release;
+}
+
+sub _check_registry {
+    my $self   = shift;
+    my $newver = $self->registry_release;
+    my $oldver = $self->registry_version;
+    return $self if $newver == $oldver;
+
+    hurl engine => __x(
+        'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
+        old => $oldver,
+        new => $newver,
+    ) if $newver < $oldver;
+
+    hurl engine => __x(
+        'Registry is at version {old} but latest is {new}. Please run the "upgrade" conmand',
+        old => $oldver,
+        new => $newver,
+    ) if $newver > $oldver;
+}
+
+sub upgrade_registry {
+    my $self    = shift;
+    return $self unless $self->needs_upgrade;
+
+    my $sqitch = $self->sqitch;
+    my $newver = $self->registry_release;
+    my $oldver = $self->registry_version;
+
+    hurl __x(
+        'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch.',
+        old => $oldver,
+        new => $newver,
+    ) if $newver < $oldver;
+
+    my $key    = $self->key;
+    my $dir    = file(__FILE__)->dir->subdir(qw(Engine Upgrade));
+
+    my @scripts = sort { $a->[0] <=> $b->[0] } grep { $_->[0] > $oldver } map {
+       $_->basename =~ /\A\Q$key\E-(\d(?:[.]\d*)?)/;
+       [ $1 || 0, $_ ];
+    } $dir->children;
+
+    # Make sure we're upgrading to where we want to be.
+    hurl engine => __x(
+        'Cannot upgrade to {version}: Cannot find upgrade script "{file}"',
+        version => $newver,
+        file    => $dir->file("$key-$newver.*"),
+    ) unless @scripts && $scripts[-1]->[0] == $newver;
+
+    # Run the upgrades.
+    for my $script (@scripts) {
+        my ($version, $file) = @{ $script };
+        $sqitch->info('  * ' . __x(
+            'From {old} to {new}',
+            old => $oldver,
+            new => $version,
+        ));
+        $self->run_upgrade($file);
+        $self->_register_release($version);
+        $oldver = $version;
+    }
+
+    return $self;
 }
 
 sub initialized {
@@ -1104,6 +1186,16 @@ sub search_events {
     hurl "$class has not implemented search_events()";
 }
 
+sub registry_version {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented registry_version()";
+}
+
+sub _update_script_hashes {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented _update_script_hashes()";
+}
+
 1;
 
 __END__
@@ -1218,6 +1310,13 @@ By default, App::Sqitch::Engine returns:
 
 Subclasses for supported engines will return more.
 
+=head3 C<registry_release>
+
+Returns the version of the registry understood by this release of Sqitch. The
+C<needs_upgrade()> method compares this value to that returned by
+C<registry_version()> to determine whether the target's registry needs
+upgrading.
+
 =head2 Constructors
 
 =head3 C<load>
@@ -1269,14 +1368,6 @@ value of C<uri> with the password removed.
 =head3 C<registry>
 
 The name of the registry schema or database.
-
-=head3 C<registry_destination>
-
-A string identifying the registry database. In other words, the database in
-which Sqitch's own data is stored. It will usually be the same as C<destination()>,
-but some engines, such as L<SQLite|App::Sqitch::Engine::sqlite>, may use a
-separate database. Used internally to name the target when the registration
-tables are created.
 
 =head3 C<start_at>
 
@@ -1590,8 +1681,31 @@ subclasses may override as appropriate.
 
   $engine->run_verify($verify_file);
 
-Runs a deploy script. The implementation is just an alias for C<run_file()>;
+Runs a verify script. The implementation is just an alias for C<run_file()>;
 subclasses may override as appropriate.
+
+=head3 C<run_upgrade>
+
+  $engine->run_upgrade($upgrade_file);
+
+Runs an upgrade script. The implementation is just an alias for C<run_file()>;
+subclasses may override as appropriate.
+
+=head3 C<needs_upgrade>
+
+  if ($engine->needs_upgrade) {
+      $engine->upgrade_registry;
+  }
+
+Determines if the target's registry needs upgrading and returns true if it
+does.
+
+=head3 C<upgrade_registry>
+
+  $engine->upgrade_registry;
+
+Upgrades the target's registry, if it needs upgrading. Used by the
+L<C<upgrade>|App::Sqitch::Command::upgrade> command.
 
 =head2 Abstract Instance Methods
 
@@ -1870,6 +1984,10 @@ The name of the project for which the state is reported.
 
 The current change ID.
 
+=item C<script_hash>
+
+The deploy script SHA-1 hash.
+
 =item C<change>
 
 The current change name.
@@ -1928,6 +2046,10 @@ reference containing the following keys:
 =item C<change_id>
 
 The current change ID.
+
+=item C<script_hash>
+
+The deploy script SHA-1 hash.
 
 =item C<change>
 
@@ -2176,6 +2298,10 @@ Otherwise, the change returned should be C<$offset> steps from that change ID,
 where C<$offset> may be positive (later step) or negative (earlier step).
 Returns C<undef> if the change was not found or if the offset is more than the
 number of changes before or after the change, as appropriate.
+
+=head3 C<registry_version>
+
+Should return the current version of the target's registry.
 
 =head1 See Also
 

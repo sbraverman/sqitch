@@ -209,12 +209,9 @@ sub initialize {
         ),
     );
 
-    # Connect to the Sqitch database.
-    my @cmd = $self->mysql;
-    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
-    my $file = file(__FILE__)->dir->file('mysql.sql');
-
-    $self->sqitch->run( @cmd, '--execute', "source $file" );
+    # Deploy the registry to the Sqitch database.
+    $self->run_upgrade( file(__FILE__)->dir->file('mysql.sql') );
+    $self->_register_release;
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
@@ -226,7 +223,7 @@ sub begin_work {
     # Start transaction and lock all tables to disallow concurrent changes.
     $dbh->do('LOCK TABLES ' . join ', ', map {
         "$_ WRITE"
-    } qw(changes dependencies events projects tags));
+    } qw(releases changes dependencies events projects tags));
     $dbh->begin_work;
     return $self;
 }
@@ -242,7 +239,8 @@ sub finish_work {
 }
 
 sub _no_table_error  {
-    return $DBI::errstr && $DBI::errstr =~ /^\Qno such table:/;
+    return $DBI::errstr
+        && $DBI::errstr =~ /^(?:\Qno such table:\E|Table '[^']+' doesn't exist)/;
 }
 
 sub _regex_op { 'REGEXP' }
@@ -291,6 +289,13 @@ sub run_verify {
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
     $self->$meth( '--execute' => "source $file" );
+}
+
+sub run_upgrade {
+    my ($self, $file) = @_;
+    my @cmd = $self->mysql;
+    $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
+    $self->sqitch->run( @cmd, '--execute', "source $file" );
 }
 
 sub run_handle {

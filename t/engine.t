@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use 5.010;
 use utf8;
-use Test::More tests => 595;
+use Test::More tests => 615;
 #use Test::More 'no_plan';
 use App::Sqitch;
 use App::Sqitch::Plan;
@@ -44,6 +44,8 @@ my $die = '';
 my $record_work = 1;
 my $updated_idx;
 my ( $earliest_change_id, $latest_change_id, $initialized );
+my $registry_version = $CLASS->registry_release;
+my $script_hash;
 ENGINE: {
     # Stub out a engine.
     package App::Sqitch::Engine::whu;
@@ -73,6 +75,7 @@ ENGINE: {
     sub changes_requiring_change { push @SEEN => [ changes_requiring_change => $_[1] ]; @{ shift @requiring } }
     sub earliest_change_id { push @SEEN => [ earliest_change_id  => $_[1] ]; $earliest_change_id }
     sub latest_change_id   { push @SEEN => [ latest_change_id    => $_[1] ]; $latest_change_id }
+    sub current_state      { push @SEEN => [ current_state => $_[1] ]; $latest_change_id ? { change => 'what', change_id => $latest_change_id, script_hash => $script_hash } : undef }
     sub initialized        { push @SEEN => 'initialized'; $initialized }
     sub initialize         { push @SEEN => 'initialize' }
     sub register_project   { push @SEEN => 'register_project' }
@@ -85,11 +88,13 @@ ENGINE: {
     sub finish_work        { push @SEEN => ['finish_work'] if $record_work }
     sub _update_ids        { push @SEEN => ['_update_ids']; $updated_idx }
     sub log_new_tags       { push @SEEN => [ log_new_tags => $_[1] ]; $_[0] }
+    sub _update_script_hashes { push @SEEN => ['_update_script_hashes']; $_[0] }
 
     sub seen { [@SEEN] }
     after seen => sub { @SEEN = () };
 
     sub name_for_change_id { return 'bugaboo' }
+    sub registry_version { $registry_version }
 }
 
 ok my $sqitch = App::Sqitch->new(
@@ -249,6 +254,37 @@ like $engine->destination, qr{^db:whu://foo:?\@localhost/blah$},
     'Destination should not include password';
 is $engine->registry_destination, $engine->destination,
     'Meta destination should again be the same as destination';
+
+##############################################################################
+# Test _check_registry.
+can_ok $engine, '_check_registry';
+ok $engine->_check_registry, 'Registry should be fine at current version';
+
+# Make the registry out-of-date.
+$registry_version = 0.1;
+throws_ok { $engine->_check_registry } 'App::Sqitch::X',
+    'Should get error for out-of-date registry';
+is $@->ident, 'engine', 'Out-of-date registry error ident should be "engine"';
+is $@->message, __x(
+    'Registry is at version {old} but latest is {new}. Please run the "upgrade" conmand',
+    old => 0.1,
+    new => $engine->registry_release,
+), 'Out-of-date registry error message should be correct';
+
+# Send the registry to the future.
+$registry_version = 999.99;
+throws_ok { $engine->_check_registry } 'App::Sqitch::X',
+    'Should get error for future registry';
+is $@->ident, 'engine', 'Future registry error ident should be "engine"';
+is $@->message, __x(
+    'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
+    old => 999.99,
+    new => $engine->registry_release,
+), 'Future registry error message should be correct';
+
+
+# Restore the registry version.
+$registry_version = $CLASS->registry_release;
 
 ##############################################################################
 # Test abstract methods.
@@ -818,14 +854,14 @@ ok $engine->_sync_plan, 'Sync the plan';
 is $plan->position, -1, 'Plan should still be at position -1';
 is $engine->start_at, undef, 'start_at should still be undef';
 $plan->position(4);
-is_deeply $engine->seen, [['latest_change_id', undef]],
-    'Should not have updated IDs';
+is_deeply $engine->seen, [['current_state', undef]],
+    'Should not have updated IDs or hashes';
 
 ok $engine->_sync_plan, 'Sync the plan again';
 is $plan->position, -1, 'Plan should again be at position -1';
 is $engine->start_at, undef, 'start_at should again be undef';
-is_deeply $engine->seen, [['latest_change_id', undef]],
-    'Still should not have updated IDs';
+is_deeply $engine->seen, [['current_state', undef]],
+    'Still should not have updated IDs or hashes';
 
 # Have latest_item return a tag.
 $latest_change_id = $changes[1]->old_id;
@@ -834,14 +870,49 @@ ok $engine->_sync_plan, 'Sync the plan to a tag';
 is $plan->position, 2, 'Plan should now be at position 1';
 is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
 is_deeply $engine->seen, [
-    ['latest_change_id', undef],
+    ['current_state', undef],
     ['_update_ids'],
     ['log_new_tags' => $plan->change_at(2)],
 ], 'Should have updated IDs';
 
+# Have current_state return a script hash.
+$script_hash = '550aeeab2ae39cba45840888b12a70820a2d6f83';
+ok $engine->_sync_plan, 'Sync the plan with a random script hash';
+is $plan->position, 2, 'Plan should now be at position 1';
+is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
+is_deeply $engine->seen, [
+    ['current_state', undef],
+    ['_update_ids'],
+    ['log_new_tags' => $plan->change_at(2)],
+], 'Should have updated IDs but not hashes';
+
+# Have current_state return the last deployed ID as script_hash.
+$script_hash = $latest_change_id;
+ok $engine->_sync_plan, 'Sync the plan with a random script hash';
+is $plan->position, 2, 'Plan should now be at position 1';
+is $engine->start_at, 'widgets@beta', 'start_at should now be widgets@beta';
+is_deeply $engine->seen, [
+    ['current_state', undef],
+    ['_update_ids'],
+    ['_update_script_hashes'],
+    ['log_new_tags' => $plan->change_at(2)],
+], 'Should have updated IDs and hashes';
+
+# Return no change ID, now.
+$script_hash = $latest_change_id = $changes[1]->id;
+ok $engine->_sync_plan, 'Sync the plan';
+is $plan->position, 1, 'Plan should be at position 1';
+is $engine->start_at, 'users@alpha', 'start_at should be users@alpha';
+is_deeply $engine->seen, [
+    ['current_state', undef],
+    ['_update_script_hashes'],
+    ['log_new_tags' => $plan->change_at(1)],
+], 'Should have updated hashes but not IDs';
+
 ##############################################################################
 # Test deploy.
 can_ok $CLASS, 'deploy';
+$script_hash = undef;
 $latest_change_id = undef;
 $plan->reset;
 $engine->seen;
@@ -868,7 +939,7 @@ $mock_engine->mock( check_revert_dependencies => sub {
 ok $engine->deploy('@alpha'), 'Deploy to @alpha';
 is $plan->position, 1, 'Plan should be at position 1';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'initialize',
     'register_project',
@@ -902,7 +973,7 @@ for my $mode (qw(change tag all)) {
     ok $engine->deploy('@alpha', $mode, 1), 'Log-only deploy in $mode mode to @alpha';
     is $plan->position, 1, 'Plan should be at position 1';
     is_deeply $engine->seen, [
-        [latest_change_id => undef],
+        [current_state => undef],
         'initialized',
         'initialize',
         'register_project',
@@ -939,7 +1010,7 @@ $engine->log_only(0);
 ok $engine->deploy('@alpha', 'tag'), 'Deploy to @alpha with tag mode';
 is $plan->position, 1, 'Plan should again be at position 1';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'register_project',
     [check_deploy_dependencies => [$plan, 1]],
@@ -971,14 +1042,14 @@ is $@->message, __x(
     change => 'nonexistent',
 ), 'The exception should report the unknown change';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
 ], 'Only latest_item() should have been called';
 
 # Start with @alpha.
 $latest_change_id = ($changes[1]->tags)[0]->id;
 ok $engine->deploy('@alpha'), 'Deploy to alpha thrice';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     ['log_new_tags' => $changes[1]],
 ], 'Only latest_item() should have been called';
 is_deeply +MockOutput->get_info, [
@@ -993,7 +1064,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message,  __ 'Cannot deploy to an earlier change; use "revert" instead',
     'It should suggest using "revert"';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     ['log_new_tags' => $changes[2]],
 ], 'Should have called latest_item() and latest_tag()';
 
@@ -1005,7 +1076,7 @@ $plan->add( name => 'lolz', note => 'ha ha' );
 ok $engine->deploy(undef, 'change'), 'Deploy everything by change';
 is $plan->position, 3, 'Plan should be at position 3';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'register_project',
     [check_deploy_dependencies => [$plan, 3]],
@@ -1042,7 +1113,7 @@ is_deeply +MockOutput->get_info, [
     [__ 'Nothing to deploy (up-to-date)' ],
 ], 'Should have emitted deploy announcement and successes';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
 ], 'It should have just fetched the latest change ID';
 
 $latest_change_id = undef;
@@ -1054,7 +1125,7 @@ is $@->ident, 'deploy', 'Should be a "deploy" error';
 is $@->message, __x('Unknown deployment mode: "{mode}"', mode => 'evil_mode'),
     'And the message should reflect the unknown mode';
 is_deeply $engine->seen, [
-    [latest_change_id => undef],
+    [current_state => undef],
     'initialized',
     'register_project',
     [check_deploy_dependencies => [$plan, 3]],
@@ -1088,7 +1159,7 @@ NOSTEPS: {
     is $@->message, __"Nothing to deploy (empty plan)",
         'Should have the localized message';
     is_deeply $engine->seen, [
-        [latest_change_id => undef],
+        [current_state => undef],
     ], 'It should have checked for the latest item';
 }
 
