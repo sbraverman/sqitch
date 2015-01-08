@@ -35,8 +35,6 @@ CREATE TABLE projects (
 CREATE TABLE changes (
     change_id       VARCHAR(40)  PRIMARY KEY
                     COMMENT 'Change primary key.',
-    script_hash     VARCHAR(40)      NULL UNIQUE
-                    COMMENT 'Deploy script SHA-1 hash.',
     "change"        VARCHAR(255) NOT NULL
                     COMMENT 'Name of a deployed change.',
     project         VARCHAR(255) NOT NULL
@@ -110,7 +108,7 @@ CREATE TABLE dependencies (
 ;
 
 CREATE TABLE events (
-    event           ENUM ('deploy', 'fail', 'merge', 'revert') NOT NULL
+    event           ENUM ('deploy', 'fail', 'revert') NOT NULL
                     COMMENT 'Type of event.',
     change_id       VARCHAR(40)  NOT NULL
                     COMMENT 'Change ID.',

@@ -38,6 +38,7 @@ sub destination {
     );
     return $uri->as_string;
 }
+
 has _vsql => (
     is         => 'ro',
     isa        => ArrayRef,
@@ -152,28 +153,39 @@ sub initialize {
         schema => $schema
     ) if $self->initialized;
 
+    $self->_run_registry_file( file(__FILE__)->dir->file('vertica.sql') );
+    $self->dbh->do('SET search_path = ' . $self->dbh->quote($schema));
+    $self->_register_release;
+}
+
+sub run_upgrade {
+    shift->_run_registry_file(@_);
+}
+
+sub _run_registry_file {
+    my ($self, $file) = @_;
+
     # Check the database version.
     my $vline = $self->dbh->selectcol_arrayref('SELECT version()')->[0];
     my ($maj) = $vline =~ /\bv?(\d+)/;
 
-    my $file = file(__FILE__)->dir->file('vertica.sql');
-
     # Need to write a temp file; no :"registry" variable syntax.
-    ($schema) = $self->dbh->selectrow_array(
-        'SELECT quote_ident(?)', undef, $schema
+    my ($schema) = $self->dbh->selectrow_array(
+        'SELECT quote_ident(?)', undef, $self->registry
     );
     (my $sql = scalar $file->slurp) =~ s{:"registry"}{$schema}g;
+
     # No LONG VARCHAR before Vertica 7.
     $sql =~ s/LONG //g if $maj < 7;
+
+    # Write out the temporary file.
     require File::Temp;
     my $fh = File::Temp->new;
     print $fh $sql;
     close $fh;
 
     # Now we can execute the file.
-    $self->_run( '--file' => $fh->filename );
-    $self->dbh->do('SET search_path = ' . $self->dbh->quote($schema));
-    return $self;
+    $self->_run_with_verbosity( $fh->filename );
 }
 
 sub _no_table_error  {
@@ -238,22 +250,29 @@ sub current_state {
     my $cdtcol = sprintf $self->_ts2char_format, 'c.committed_at';
     my $pdtcol = sprintf $self->_ts2char_format, 'c.planned_at';
     my $dbh    = $self->dbh;
-    my $state  = $dbh->selectrow_hashref(qq{
-        SELECT c.change_id
-             , c.change
-             , c.project
-             , c.note
-             , c.committer_name
-             , c.committer_email
-             , $cdtcol AS committed_at
-             , c.planner_name
-             , c.planner_email
-             , $pdtcol AS planned_at
-          FROM changes   c
-         WHERE c.project = ?
-         ORDER BY c.committed_at DESC
-         LIMIT 1
-    }, undef, $project // $self->plan->project ) or return undef;
+    my $state  = try {
+        $dbh->selectrow_hashref(qq{
+            SELECT c.change_id
+                 , c.script_hash
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , $cdtcol AS committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , $pdtcol AS planned_at
+              FROM changes c
+             WHERE c.project = ?
+             ORDER BY c.committed_at DESC
+             LIMIT 1
+        }, undef, $project // $self->plan->project );
+    } catch {
+        return if $self->_no_table_error && !$self->initialized;
+        die $_;
+    } or return undef;
+
     $state->{tags} = $dbh->selectcol_arrayref(
         'SELECT tag FROM tags WHERE change_id = ? ORDER BY committed_at',
         undef, $state->{change_id}
@@ -381,9 +400,10 @@ sub run_file {
     $self->_run('--file' => $file);
 }
 
-sub run_verify {
+sub run_verify { shift->_run_with_verbosity(@_) }
+
+sub _run_with_verbosity {
     my $self = shift;
-    # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
     return $self->$meth('--file' => @_);
 }

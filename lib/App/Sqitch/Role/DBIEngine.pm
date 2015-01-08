@@ -55,6 +55,31 @@ sub _in_expr {
     return $in, @{ $vals };
 }
 
+sub _register_release {
+    my $self    = shift;
+    my $version = shift || $self->registry_release;
+    my $sqitch  = $self->sqitch;
+    my $ts      = $self->_ts_default;
+
+    $self->begin_work;
+    $self->dbh->do(qq{
+        INSERT INTO releases (version, installed_at, installer_name, installer_email)
+        VALUES (?, $ts, ?, ?)
+    }, undef, $version, $sqitch->user_name, $sqitch->user_email);
+    $self->finish_work;
+    return $self;
+}
+
+sub registry_version {
+    my $self = shift;
+    try {
+        $self->dbh->selectcol_arrayref('SELECT MAX(version) FROM releases')->[0];
+    } catch {
+        return 0 if $self->_no_table_error;
+        die $_;
+    };
+}
+
 sub _cid {
     my ( $self, $ord, $offset, $project ) = @_;
     my $schema = $self->_schema;
@@ -88,34 +113,42 @@ sub current_state {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $dbh    = $self->dbh;
     my $schema = $self->_schema;
-    my $state  = $dbh->selectrow_hashref(qq{
-        SELECT c.change_id
-             , c.change
-             , c.project
-             , c.note
-             , c.committer_name
-             , c.committer_email
-             , $cdtcol AS committed_at
-             , c.planner_name
-             , c.planner_email
-             , $pdtcol AS planned_at
-             , $tagcol AS tags
+    my $state  = try {
+        $dbh->selectrow_hashref(qq{
+            SELECT c.change_id
+                 , c.script_hash
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , $cdtcol AS committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , $pdtcol AS planned_at
+                 , $tagcol AS tags
           FROM $schema changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
-         WHERE c.project = ?
-         GROUP BY c.change_id
-             , c.change
-             , c.project
-             , c.note
-             , c.committer_name
-             , c.committer_email
-             , c.committed_at
-             , c.planner_name
-             , c.planner_email
-             , c.planned_at
-         ORDER BY c.committed_at DESC
-         LIMIT 1
-    }, undef, $project // $self->plan->project ) or return undef;
+              LEFT JOIN tags t ON c.change_id = t.change_id
+             WHERE c.project = ?
+             GROUP BY c.change_id
+                 , c.script_hash
+                 , c.change
+                 , c.project
+                 , c.note
+                 , c.committer_name
+                 , c.committer_email
+                 , c.committed_at
+                 , c.planner_name
+                 , c.planner_email
+                 , c.planned_at
+             ORDER BY c.committed_at DESC
+             LIMIT 1
+        }, undef, $project // $self->plan->project );
+    } catch {
+        return if $self->_no_table_error && !$self->initialized;
+        die $_;
+    } or return undef;
+
     unless (ref $state->{tags}) {
         $state->{tags} = $state->{tags} ? [ split / / => $state->{tags} ] : [];
     }
@@ -131,6 +164,7 @@ sub current_changes {
     my $schema = $self->_schema;    
     my $sth    = $self->dbh->prepare(qq{
         SELECT c.change_id
+             , c.script_hash
              , c.change
              , c.committer_name
              , c.committer_email
@@ -425,6 +459,7 @@ sub log_deploy_change {
     my $ts = $self->_ts_default;
     my $cols = join "\n            , ", $self->_quote_idents(qw(
         change_id
+        script_hash
         change
         project
         note
@@ -439,9 +474,10 @@ sub log_deploy_change {
         INSERT INTO $schema changes (
             $cols
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, $ts)
     }, undef,
         $id,
+        $change->script_hash,
         $name,
         $proj,
         $change->note,
@@ -893,6 +929,27 @@ sub change_id_for {
     return undef;
 }
 
+sub _update_script_hashes {
+    my $self = shift;
+    my $plan = $self->plan;
+    my $proj = $plan->project;
+    my $dbh  = $self->dbh;
+    my $sth  = $dbh->prepare(
+        'UPDATE changes SET script_hash = ? WHERE change_id = ?'
+    );
+
+    $self->begin_work;
+    $sth->execute($_->script_hash, $_->id) for $plan->changes;
+    $dbh->do(q{
+        UPDATE changes SET script_hash = NULL
+         WHERE project = ? AND script_hash = change_id
+    }, undef, $proj);
+
+    $self->finish_work;
+    return $self;
+}
+
+
 sub begin_work {
     my $self = shift;
     # Note: Engines should acquire locks to prevent concurrent Sqitch activity.
@@ -984,6 +1041,8 @@ DBI-powered engines.
 =head3 C<change_offset_from_id>
 
 =head3 C<change_id_for>
+
+=head3 C<registry_version>
 
 =head1 See Also
 

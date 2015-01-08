@@ -7,7 +7,10 @@ use Try::Tiny;
 use Test::More;
 use Test::Exception;
 use Time::HiRes qw(sleep);
+use Path::Class 0.33 qw(file dir);
+use Digest::SHA qw(sha1_hex);
 use Locale::TextDomain qw(App-Sqitch);
+use File::Temp 'tempdir';
 
 # Just die on warnings.
 use Carp; BEGIN { $SIG{__WARN__} = \&Carp::confess }
@@ -20,6 +23,20 @@ sub run {
     my $user1_name    = 'Marge Simpson';
     my $user1_email   = 'marge@example.com';
     my $mock_sqitch   = Test::MockModule->new('App::Sqitch');
+
+    # Mock script hashes using lines from the README.
+    my $mock_change = Test::MockModule->new('App::Sqitch::Plan::Change');
+    my @lines = grep { $_ } file('README.md')->slurp(
+        chomp  => 1,
+        iomode => '<:encoding(UTF-8)'
+    );
+    # Each change should retain its own hash.
+    my $orig_deploy_hash;
+    $mock_change->mock(_deploy_hash => sub {
+        my $self = shift;
+        $self->$orig_deploy_hash || sha1_hex shift @lines;
+    });
+    $orig_deploy_hash = $mock_change->original('_deploy_hash');
 
     can_ok $class, qw(
         initialized
@@ -67,11 +84,41 @@ sub run {
             };
         }
 
-        ok $engine, 'Engine initialized';
+        ok $engine, 'Engine instantiated';
 
         ok !$engine->initialized, 'Database should not yet be initialized';
-        ok $engine->initialize, 'Initialize the database';
+        OLDREG: {
+            my $mock_file = Test::MockModule->new('Path::Class::File');
+            my $dir = file(__FILE__)->dir->subdir('upgradable_registries');
+            $mock_file->mock( dir => sub { $dir } );
+            ok $engine->initialize, 'Initialize the database';
+        };
         ok $engine->initialized, 'Database should now be initialized';
+        ok !$engine->needs_upgrade, 'Registry should not need upgrading';
+        is_deeply $engine->dbh->selectall_arrayref(
+            'SELECT version, installer_name, installer_email FROM releases'
+        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
+            'The release should be registered';
+
+        # Let's make sure upgrades work.
+        $engine->dbh->do('DROP TABLE releases');
+        ok $engine->needs_upgrade, 'Registry should need upgrading';
+        MOCKINFO: {
+            my $sqitch_mocker = Test::MockModule->new(ref $sqitch);
+            my @args;
+            $sqitch_mocker->mock(info => sub { shift; push @args => @_ });
+            ok $engine->upgrade_registry, 'Upgrade the registry';
+            is_deeply \@args, ['  * ' . __x(
+                'From {old} to {new}',
+                old => 0,
+                new => '1.0',
+            )], 'Should have info output for upgrade';
+        }
+        ok !$engine->needs_upgrade, 'Registry should no longer need upgrading';
+        is_deeply $engine->dbh->selectall_arrayref(
+            'SELECT version, installer_name, installer_email FROM releases'
+        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
+            'The release should be registered again';
 
         # Try it with a different Sqitch DB.
         $target = App::Sqitch::Target->new(
@@ -79,7 +126,7 @@ sub run {
             @{ $p{alt_target_params} || [] },
         );
         ok $engine = $class->new(
-            sqitch    => $sqitch,
+            sqitch => $sqitch,
             target => $target,
             @{ $p{alt_engine_params} || [] },
         ), 'Create engine with alternate params';
@@ -90,6 +137,7 @@ sub run {
         ok !$engine->initialized, 'Database should no longer seem initialized';
         ok $engine->initialize, 'Initialize the database again';
         ok $engine->initialized, 'Database should be initialized again';
+        ok !$engine->needs_upgrade, 'Registry should not need upgrading';
 
         is $engine->earliest_change_id, undef, 'Still no earlist change';
         is $engine->latest_change_id, undef, 'Still no latest changes';
@@ -294,6 +342,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $change->id,
+            script_hash     => $change->script_hash,
             change          => 'users',
             note            => 'User roles',
             committer_name  => $sqitch->user_name,
@@ -305,6 +354,7 @@ sub run {
         }, 'The rest of the state should look right';
         is_deeply all( $engine->current_changes ), [{
             change_id       => $change->id,
+            script_hash     => $change->script_hash,
             change          => 'users',
             committer_name  => $sqitch->user_name,
             committer_email => $sqitch->user_email,
@@ -616,6 +666,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $change2->id,
+            script_hash     => $change2->script_hash,
             change          => 'widgets',
             note            => 'All in',
             committer_name  => $user2_name,
@@ -629,6 +680,7 @@ sub run {
         my @current_changes = (
             {
                 change_id       => $change2->id,
+                script_hash     => $change2->script_hash,
                 change          => 'widgets',
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
@@ -639,6 +691,7 @@ sub run {
             },
             {
                 change_id       => $change->id,
+                script_hash     => $change->script_hash,
                 change          => 'users',
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
@@ -780,6 +833,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $change2->id,
+            script_hash     => $change2->script_hash,
             change          => 'widgets',
             note            => 'All in',
             committer_name  => $sqitch->user_name,
@@ -863,6 +917,7 @@ sub run {
         is_deeply $state, {
             project         => 'engine',
             change_id       => $barney->id,
+            script_hash     => $barney->script_hash,
             change          => 'barney',
             note            => 'Hello Barney',
             committer_name  => $sqitch->user_name,
@@ -876,6 +931,7 @@ sub run {
 
         unshift @current_changes => {
             change_id       => $barney->id,
+            script_hash     => $barney->script_hash,
             change          => 'barney',
             committer_name  => $user2_name,
             committer_email => $user2_email,
@@ -885,6 +941,7 @@ sub run {
             planned_at      => $barney->timestamp,
         }, {
             change_id       => $fred->id,
+            script_hash     => $fred->script_hash,
             change          => 'fred',
             committer_name  => $user2_name,
             committer_email => $user2_email,
@@ -1103,6 +1160,7 @@ sub run {
         is_deeply $state, {
             project         => 'groovy',
             change_id       => $ext_change->id,
+            script_hash     => $ext_change->script_hash,
             change          => $ext_change->name,
             note            => $ext_change->note,
             committer_name  => $sqitch->user_name,
@@ -1347,6 +1405,7 @@ sub run {
         is_deeply all( $engine->current_changes('groovy') ), [
             {
                 change_id       => $ext_change2->id,
+                script_hash     => $ext_change2->script_hash,
                 change          => $ext_change2->name,
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
@@ -1356,6 +1415,7 @@ sub run {
                 planned_at      => $ext_change2->timestamp,
             }, {
                 change_id       => $ext_change->id,
+                script_hash     => $ext_change->script_hash,
                 change          => $ext_change->name,
                 committer_name  => $user2_name,
                 committer_email => $user2_email,
@@ -1552,8 +1612,19 @@ sub run {
         ######################################################################
         # Add a reworked change.
         ok my $rev_change = $plan->rework( name => 'users' ), 'Rework change "users"';
-        $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
-        ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
+        my $deploy_file = $rev_change->deploy_file;
+        my $tmp_dir = dir( tempdir CLEANUP => 1 );
+        $deploy_file->copy_to($tmp_dir);
+        my $fh = $rev_change->deploy_file->opena or die "Cannot open $deploy_file: $!\n";
+        try {
+            say $fh '-- Append line to reworked script so it gets a new SHA-1 hash';
+            close $fh;
+            $_->resolved_id( $engine->change_id_for_depend($_) ) for $rev_change->requires;
+            ok $engine->log_deploy_change($rev_change),  'Deploy the reworked change';
+        } finally {
+            # Restore the reworked script.
+            $tmp_dir->file( $deploy_file->basename )->move_to($deploy_file);
+        };
 
         # Make sure that change_id_for() is okay with the dupe.
         is $engine->change_id_for( change => 'users'), $change->id,
@@ -1562,6 +1633,35 @@ sub run {
         # Unmock everything and call it a day.
         $mock_dbh->unmock_all;
         $mock_sqitch->unmock_all;
+
+        ######################################################################
+        # Let's make sure script_hash upgrades work.
+        $engine->dbh->do('UPDATE changes SET script_hash = change_id');
+        ok $engine->_update_script_hashes, 'Update script hashes';
+
+        # Make sure they were updated properly.
+        my $sth = $engine->dbh->prepare(
+            'SELECT change_id, script_hash FROM changes WHERE project = ?',
+        );
+        $sth->execute($plan->project);
+        while (my $row = $sth->fetch) {
+            my $change = $plan->get($row->[0]);
+            is $row->[1], $change->script_hash,
+                'Should have updated script hash for ' . $change->name;
+        }
+
+        # Make sure no other projects were updated.
+        $sth = $engine->dbh->prepare(
+            'SELECT change_id, script_hash FROM changes WHERE project <> ?',
+        );
+        $sth->execute($plan->project);
+        while (my $row = $sth->fetch) {
+            is $row->[1], $row->[0],
+                'Change ID and script hash should be ' . substr $row->[0], 0, 6;
+        }
+
+        ######################################################################
+        # All done.
         done_testing;
     };
 }
