@@ -60,10 +60,11 @@ sub _register_release {
     my $version = shift || $self->registry_release;
     my $sqitch  = $self->sqitch;
     my $ts      = $self->_ts_default;
+    my $schema = $self->_schema;
 
     $self->begin_work;
     $self->dbh->do(qq{
-        INSERT INTO releases (version, installed_at, installer_name, installer_email)
+        INSERT INTO $schema releases (version, installed_at, installer_name, installer_email)
         VALUES (?, $ts, ?, ?)
     }, undef, $version, $sqitch->user_name, $sqitch->user_email);
     $self->finish_work;
@@ -72,8 +73,9 @@ sub _register_release {
 
 sub registry_version {
     my $self = shift;
+    my $schema = $self->_schema;
     try {
-        $self->dbh->selectcol_arrayref('SELECT MAX(version) FROM releases')->[0];
+        $self->dbh->selectcol_arrayref(qq{SELECT MAX(version) FROM $schema releases}, undef)->[0];
     } catch {
         return 0 if $self->_no_table_error;
         die $_;

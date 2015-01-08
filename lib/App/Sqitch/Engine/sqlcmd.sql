@@ -1,3 +1,15 @@
+CREATE TABLE dbo.releases(
+	version float NOT NULL,
+	installed_at datetime2 NOT NULL,
+	installer_name varchar(255) NOT NULL,
+	installer_email varchar(255) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	version ASC
+)
+)
+
+
 CREATE TABLE dbo.projects(
 	project varchar(255) NOT NULL,
 	uri varchar(255) NULL,
@@ -38,6 +50,7 @@ PRIMARY KEY CLUSTERED
 
 CREATE TABLE dbo.changes(
 	change_id varchar(40) NOT NULL,
+	script_hash varchar(40) NULL,
 	change varchar(255) NOT NULL,
 	project varchar(255) NOT NULL,
 	note varchar(8000) NOT NULL,
@@ -93,7 +106,7 @@ ALTER TABLE dbo.dependencies  WITH CHECK ADD  CONSTRAINT ck_dependency CHECK  ((
 ALTER TABLE dbo.dependencies CHECK CONSTRAINT ck_dependency
 
 
-ALTER TABLE dbo.events  WITH CHECK ADD  CONSTRAINT ck_event CHECK  ((event='deploy' OR event='revert' OR event='fail'))
+ALTER TABLE dbo.events  WITH CHECK ADD  CONSTRAINT ck_event CHECK  ((event='deploy' OR event='revert' OR event='fail' OR event='merge'))
 
 ALTER TABLE dbo.events CHECK CONSTRAINT ck_event
 

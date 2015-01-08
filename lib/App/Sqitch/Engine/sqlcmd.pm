@@ -202,13 +202,10 @@ sub initialize {
     if ($reg ne $self->registry)
 {
     my $result = $sqlsrv->sql($stmnt);
-    my $file = file(__FILE__)->dir->file('sqlcmd.sql');
-    my $file_stmnt = read_file($file);
-    $result = $sqlsrv->sql($file_stmnt);
-    $file = file(__FILE__)->dir->file('sqlcmd_sqitch_verify.sql');
-    $file_stmnt = read_file($file);
-    $result = $sqlsrv->sql($file_stmnt);
-    my @tables = qw(changes dependencies events projects tags verify);
+    $self->run_upgrade(file(__FILE__)->dir->file('sqlcmd.sql'));
+    $self->run_upgrade(file(__FILE__)->dir->file('sqlcmd_sqitch_verify.sql'));
+    
+    my @tables = qw(releases changes dependencies events projects tags verify);
     foreach my $name (@tables) {
     my $schema_stmnt = sprintf(qq
 	{ALTER SCHEMA %s TRANSFER $name;},
@@ -216,7 +213,15 @@ sub initialize {
         );
     $result = $sqlsrv->sql($schema_stmnt);
 }
+  $self->_register_release;
 }
+}
+
+sub run_upgrade {
+    my ($self, $file) = @_;
+    my $sqlsrv = sql_init($self->uri->host, undef, undef, $self->registry_uri->dbname);
+    my $file_stmnt = read_file($file);
+    my $result = $sqlsrv->sql($file_stmnt);
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
