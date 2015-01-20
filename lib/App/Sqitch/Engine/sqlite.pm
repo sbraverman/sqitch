@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.998';
+our $VERSION = '0.999';
 
 has registry_uri => (
     is       => 'ro',
@@ -167,6 +167,10 @@ sub initialize {
 
 sub _no_table_error  {
     return $DBI::errstr && $DBI::errstr =~ /^\Qno such table:/;
+}
+
+sub _no_column_error  {
+    return try { $_->message =~ /^\Qno such column:/ };
 }
 
 sub _regex_op { 'REGEXP' }

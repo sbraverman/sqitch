@@ -18,7 +18,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.998';
+our $VERSION = '0.999';
 
 has registry_uri => (
     is       => 'ro',
@@ -276,6 +276,10 @@ sub _dt($) {
 
 sub _no_table_error  {
     return $DBI::errstr && $DBI::errstr =~ /^-Table unknown|No such file or directory/m;
+}
+
+sub _no_column_error  {
+    return $DBI::errstr && $DBI::errstr =~ /^-Column unknown|/m;
 }
 
 sub _regex_op { 'SIMILAR TO' }               # NOT good match for
