@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.998';
+our $VERSION = '0.999';
 
 sub destination {
     my $self = shift;
@@ -347,6 +347,10 @@ sub _dt($) {
 
 sub _no_table_error  {
     return $DBI::state && $DBI::state eq '42P01'; # undefined_table
+}
+
+sub _no_column_error  {
+    return $DBI::state && $DBI::state eq '42703'; # undefined_column
 }
 
 sub _in_expr {
