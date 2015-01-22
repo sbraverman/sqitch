@@ -941,14 +941,15 @@ sub _update_script_hashes {
     my $plan = $self->plan;
     my $proj = $plan->project;
     my $dbh  = $self->dbh;
-    my $sth  = $dbh->prepare(
-        'UPDATE changes SET script_hash = ? WHERE change_id = ? AND script_hash = ?'
+    my $schema = $self->_schema;
+    my $sth  = $dbh->prepare(qq{
+        UPDATE $schema changes SET script_hash = ? WHERE change_id = ? AND script_hash = ?}
     );
 
     $self->begin_work;
     $sth->execute($_->script_hash, $_->id, $_->id) for $plan->changes;
-    $dbh->do(q{
-        UPDATE changes SET script_hash = NULL
+    $dbh->do(qq{
+        UPDATE $schema changes SET script_hash = NULL
          WHERE project = ? AND script_hash = change_id
     }, undef, $proj);
 
