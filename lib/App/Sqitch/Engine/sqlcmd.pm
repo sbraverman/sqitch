@@ -19,7 +19,7 @@ use File::Slurp;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.997';
+our $VERSION = '0.999';
 
 has registry_uri => (
 is => 'ro',
@@ -32,7 +32,17 @@ default => sub {
         my @fields = split /\//, $uri;
         my $db = $fields[3];
         my @host = split /@/, $fields[2];
+        my $pwd = $uri->password; 
+
+        if (defined $pwd)
+	{
+	  $uri->query("Provider=" . $self->provider . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";");
+	}
+	if (not defined $pwd)
+		{
+		  
 	$uri->query("Provider=" . $self->provider . ";Integrated Security=" . $self->integrated_security . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";");
+	}
         return $uri;
     },
 );
@@ -176,11 +186,21 @@ return $dbh->selectcol_arrayref(q{
 sub initialize {
 
     my $self = shift;
+    my $uri = $self->uri->clone;
+    print $uri->user;
+    print $uri->password;
+    my $uname = $uri->user;
+    my $pwd = $uri->password;
 
-    # Create the Sqitch database if it does not exist.
+    #Create the Sqitch database if it does not exist.
     (my $db = $self->registry) =~ s/"/""/g;
-
     my $sqlsrv = sql_init($self->uri->host, undef, undef, $self->registry_uri->dbname);
+    
+    if (defined $pwd)
+    {
+    	$sqlsrv = sql_init($self->uri->host, $uname, $pwd, $self->registry_uri->dbname);
+    }
+    
     my $stmnt = sprintf(
 	"CREATE SCHEMA %s",
             $self->registry 
