@@ -187,8 +187,6 @@ sub initialize {
 
     my $self = shift;
     my $uri = $self->uri->clone;
-    print $uri->user;
-    print $uri->password;
     my $uname = $uri->user;
     my $pwd = $uri->password;
 
