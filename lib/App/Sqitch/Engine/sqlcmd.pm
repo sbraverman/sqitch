@@ -93,7 +93,7 @@ has dbh => (
 
         my $uri = $self->registry_uri;
         
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        my $dbh = DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
             PrintError => 0,
             RaiseError => 0,
             AutoCommit => 1,
