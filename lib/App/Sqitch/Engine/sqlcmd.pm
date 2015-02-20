@@ -221,7 +221,6 @@ sub initialize {
 {
     my $result = $sqlsrv->sql($stmnt);
     $self->run_upgrade(file(__FILE__)->dir->file('sqlcmd.sql'));
-    $self->run_upgrade(file(__FILE__)->dir->file('sqlcmd_sqitch_verify.sql'));
     
     my @tables = qw(releases changes dependencies events projects tags verify);
     foreach my $name (@tables) {
