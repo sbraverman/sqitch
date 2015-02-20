@@ -1,3 +1,11 @@
 -- Verify [% change %]
 
--- sqitch.verify "--Add your script here--"
+if not exists (
+  select *
+  from information_schema.tables -- routines or schemata ...
+  where
+    table_type = '' and
+    table_schema = '' and
+    table_name = ''
+)
+  raiserror (N'Sqitch Verification Error', 20, 1) with log
