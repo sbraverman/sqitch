@@ -1,7 +1,7 @@
 -- Revert [% change %]
 
-BEGIN TRANSACTION Revert;
+begin transaction [% object_type %]_[% object_schema %]_[% object_name %]
 
--- XXX Add DDLs here.
+drop [% object_type %] [% object_schema %].[% object_name %]
 
-COMMIT TRANSACTION Revert;
+commit transaction [% object_type %]_[% object_schema %]_[% object_name %]

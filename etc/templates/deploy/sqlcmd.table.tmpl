@@ -1,0 +1,21 @@
+-- Deploy [% change %]
+
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+begin transaction [% object_name %]
+
+if object_id('[% object_schema %].[% object_name %]') is not null begin
+	drop [% object_type %] [% object_schema %].[% object_name %]
+end
+
+create [% object_type %] [% object_schema %].[% object_name %]
+	(
+		-- TODO: Add DDL to [% change %]
+	) on [primary]
+
+commit transaction [% object_name %]

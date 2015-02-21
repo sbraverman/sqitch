@@ -1,32 +1,40 @@
--- Verify role..[% change %]
+-- Verify [% change %]
 
 -- Check for existence
 if not exists (
 	select name
 	
 -- choose appropriate block
+
+-- tables
 	from information_schema.tables
   where
-		table_type = '[% object_type %]' and -- 'BASE TABLE' or 'VIEW'
+  	-- filter: ends with either 'table' or 'view'
+		table_type like '%[% object_type %]' and -- 'BASE TABLE' or 'VIEW'
     table_schema = '[% object_schema %]' and
     table_name = '[% object_name %]'
     
--- or
+-- or routines
 	from information_schema.routines
   where
 		routine_type = '[% object_type %]' and -- 'FUNCTION' or 'PROCEDURE'
     routine_schema = '[% object_schema %]' and
     routine_name = '[% object_name %]'
     
--- or
+-- or schema
 	from information_schema.schemata
 		where
 		schema_name = '[% object_name %]'
 		
--- or
+-- or principals
 	from sys.database_principals
 	where
-		name = '[% object_name %]' and
-		type = '[% object_type %]' -- 'U = database user or 'R' = database role
+		-- filter: translate user S or U and role to R
+		type like case '[% object_type %]'
+			when 'user' then '[SU]'
+			when 'role' then 'R'
+			else ''
+		end and
+		name = '[% object_name %]'
 )
-  raiserror (N'Sqitch Verification Error (with [% change %])', 20, 1) with log
+  raiserror (N'Sqitch Verification Error ([% change %])', 20, 1) with log

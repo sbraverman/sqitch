@@ -1,0 +1,12 @@
+-- Deploy [% change %]
+
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+create [% object_type %] [% object_name %]
+	for login [[% login_name %]]
+	with default_schema = [[% object_schema %]]

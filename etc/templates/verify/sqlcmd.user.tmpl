@@ -1,0 +1,15 @@
+-- Verify [% change %]
+
+if not exists (
+	select name
+	from sys.database_principals
+	where
+		-- filter: translate user S or U and role to R
+		type like case '[% object_type %]'
+			when 'user' then '[SU]'
+			when 'role' then 'R'
+			else ''
+		end and
+		name = '[% object_name %]'
+)
+  raiserror (N'Sqitch Verification Error ([% change %])', 20, 1) with log

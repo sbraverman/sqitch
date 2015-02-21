@@ -1,4 +1,5 @@
 -- Deploy [% change %]
+
 [% FOREACH item IN requires -%]
 -- requires: [% item %]
 [% END -%]
@@ -6,8 +7,8 @@
 -- conflicts: [% item %]
 [% END -%]
 
-BEGIN TRANSACTION Deploy;
+begin transaction [% object_type %]_[% object_schema %]_[% object_name %]
 
--- XXX Add DDLs here.
+create [% object_type %] [% object_schema %].[% object_name %] -- ...
 
-COMMIT TRANSACTION Deploy;
+commit transaction [% object_type %]_[% object_schema %]_[% object_name %]
