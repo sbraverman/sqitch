@@ -222,7 +222,7 @@ sub initialize {
     my $result = $sqlsrv->sql($stmnt);
     $self->run_upgrade(file(__FILE__)->dir->file('sqlcmd.sql'));
     
-    my @tables = qw(releases changes dependencies events projects tags verify);
+    my @tables = qw(releases changes dependencies events projects tags);
     foreach my $name (@tables) {
     my $schema_stmnt = sprintf(qq
 	{ALTER SCHEMA %s TRANSFER $name;},
