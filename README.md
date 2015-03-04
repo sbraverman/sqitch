@@ -1,4 +1,4 @@
-App/Sqitch version 0.999
+App/Sqitch version 0.999_1
 ========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
@@ -105,7 +105,7 @@ Linux distributions and Windows, see the
 Licence
 -------
 
-Copyright © 2012-2014 iovation Inc.
+Copyright © 2012-2015 iovation Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
