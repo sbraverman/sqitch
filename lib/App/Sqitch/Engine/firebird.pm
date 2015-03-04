@@ -18,7 +18,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999';
+our $VERSION = '0.999_1';
 
 has registry_uri => (
     is       => 'ro',
@@ -950,7 +950,7 @@ David E. Wheeler <david@justatheory.com>
 
 =head1 License
 
-Copyright (c) 2012-2014 iovation Inc.
+Copyright (c) 2012-2015 iovation Inc.
 
 Copyright (c) 2013 Ștefan Suciu
 
