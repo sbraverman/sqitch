@@ -19,7 +19,7 @@ use File::Slurp;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.997';
+our $VERSION = '0.999_1';
 
 has registry_uri => (
 is => 'ro',
@@ -32,7 +32,17 @@ default => sub {
         my @fields = split /\//, $uri;
         my $db = $fields[3];
         my @host = split /@/, $fields[2];
+        my $pwd = $uri->password; 
+
+        if (defined $pwd)
+	{
+	  $uri->query("Provider=" . $self->provider . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";");
+	}
+	if (not defined $pwd)
+		{
+		  
 	$uri->query("Provider=" . $self->provider . ";Integrated Security=" . $self->integrated_security . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";");
+	}
         return $uri;
     },
 );
@@ -83,7 +93,7 @@ has dbh => (
 
         my $uri = $self->registry_uri;
         
-        my $dbh = DBI->connect($uri->dbi_dsn, scalar $uri->user, scalar $uri->password, {
+        my $dbh = DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
             PrintError => 0,
             RaiseError => 0,
             AutoCommit => 1,
@@ -176,11 +186,19 @@ return $dbh->selectcol_arrayref(q{
 sub initialize {
 
     my $self = shift;
+    my $uri = $self->uri->clone;
+    my $uname = $uri->user;
+    my $pwd = $uri->password;
 
-    # Create the Sqitch database if it does not exist.
+    #Create the Sqitch database if it does not exist.
     (my $db = $self->registry) =~ s/"/""/g;
-
     my $sqlsrv = sql_init($self->uri->host, undef, undef, $self->registry_uri->dbname);
+    
+    if (defined $pwd)
+    {
+    	$sqlsrv = sql_init($self->uri->host, $uname, $pwd, $self->registry_uri->dbname);
+    }
+    
     my $stmnt = sprintf(
 	"CREATE SCHEMA %s",
             $self->registry 
@@ -203,7 +221,6 @@ sub initialize {
 {
     my $result = $sqlsrv->sql($stmnt);
     $self->run_upgrade(file(__FILE__)->dir->file('sqlcmd.sql'));
-    $self->run_upgrade(file(__FILE__)->dir->file('sqlcmd_sqitch_verify.sql'));
     
     my @tables = qw(releases changes dependencies events projects tags verify);
     foreach my $name (@tables) {
