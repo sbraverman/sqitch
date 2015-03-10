@@ -115,42 +115,10 @@ sub _select_state {
     my $tagcol = sprintf $self->_listagg_format, 't.tag';
     my $hshcol = $with_hash ? "c.script_hash\n                 , " : '';
     my $dbh    = $self->dbh;
-<<<<<<< HEAD
     my $schema = $self->_schema;
-    my $state  = try {
-        $dbh->selectrow_hashref(qq{
-            SELECT c.change_id
-                 , c.script_hash
-                 , c.change
-                 , c.project
-                 , c.note
-                 , c.committer_name
-                 , c.committer_email
-                 , $cdtcol AS committed_at
-                 , c.planner_name
-                 , c.planner_email
-                 , $pdtcol AS planned_at
-                 , $tagcol AS tags
-          FROM $schema changes   c
-              LEFT JOIN tags t ON c.change_id = t.change_id
-             WHERE c.project = ?
-             GROUP BY c.change_id
-                 , c.script_hash
-                 , c.change
-                 , c.project
-                 , c.note
-                 , c.committer_name
-                 , c.committer_email
-                 , c.committed_at
-                 , c.planner_name
-                 , c.planner_email
-                 , c.planned_at
-             ORDER BY c.committed_at DESC
-             LIMIT 1
-        }, undef, $project // $self->plan->project );
-=======
+    
     $dbh->selectrow_hashref(qq{
-        SELECT c.change_id
+        SELECT TOP 1 c.change_id
              , ${hshcol}c.change
              , c.project
              , c.note
@@ -175,7 +143,6 @@ sub _select_state {
              , c.planner_email
              , c.planned_at
          ORDER BY c.committed_at DESC
-         LIMIT 1
     }, undef, $project // $self->plan->project );
 }
 
@@ -183,7 +150,6 @@ sub current_state {
     my ( $self, $project ) = @_;
     my $state  = try {
         $self->_select_state($project, 1)
->>>>>>> 0be9ab77c0f9a0e05d6c47b5b05bfc3fba27e330
     } catch {
         return if $self->_no_table_error && !$self->initialized;
         return $self->_select_state($project, 0) if $self->_no_column_error;
@@ -975,14 +941,15 @@ sub _update_script_hashes {
     my $plan = $self->plan;
     my $proj = $plan->project;
     my $dbh  = $self->dbh;
-    my $sth  = $dbh->prepare(
-        'UPDATE changes SET script_hash = ? WHERE change_id = ? AND script_hash = ?'
+    my $schema = $self->_schema;
+    my $sth  = $dbh->prepare(qq{
+        UPDATE $schema changes SET script_hash = ? WHERE change_id = ? AND script_hash = ?}
     );
 
     $self->begin_work;
     $sth->execute($_->script_hash, $_->id, $_->id) for $plan->changes;
-    $dbh->do(q{
-        UPDATE changes SET script_hash = NULL
+    $dbh->do(qq{
+        UPDATE $schema changes SET script_hash = NULL
          WHERE project = ? AND script_hash = change_id
     }, undef, $proj);
 
