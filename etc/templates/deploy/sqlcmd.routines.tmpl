@@ -1,0 +1,18 @@
+-- Deploy [% change %]
+
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+if object_id('[% object_schema %].[% object_name %]') is not null begin
+	drop [% object_type %] [% object_schema %].[% object_name %]
+end
+GO
+
+create [% object_type %] [% object_schema %].[% object_name %] as
+  BEGIN
+		-- TODO: Add DDL to [% change %]
+	END
