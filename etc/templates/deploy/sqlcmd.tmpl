@@ -7,8 +7,6 @@
 -- conflicts: [% item %]
 [% END -%]
 
-begin transaction [% object_type %]_[% object_schema %]_[% object_name %]
+-- TODO: Amend SQL for Deploy [% change %]
 
 create [% object_type %] [% object_schema %].[% object_name %] -- ...
-
-commit transaction [% object_type %]_[% object_schema %]_[% object_name %]

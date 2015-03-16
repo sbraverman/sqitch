@@ -4,8 +4,7 @@ if not exists (
 	select *
 	from information_schema.tables
   where
-  	-- filter: ends with either 'table' or 'view'
-		table_type like '%[% object_type %]' and -- 'BASE TABLE' or 'VIEW'
+		table_type = 'VIEW' and
     table_schema = '[% object_schema %]' and
     table_name = '[% object_name %]'
 )

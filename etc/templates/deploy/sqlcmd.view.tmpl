@@ -7,13 +7,10 @@
 -- conflicts: [% item %]
 [% END -%]
 
-if object_id('[% object_schema %].[% object_name %]') is not null begin
-	drop [% object_type %] [% object_schema %].[% object_name %]
-end
-GO
-
-create [% object_type %] [% object_schema %].[% object_name %] as
+create view [% object_schema %].[% object_name %] as
 select
-	-- TODO: add DDL to [% change %]
-from -- [% object_name %]_infoflex
-  [% table_schema %].[% object_name %]
+
+	-- TODO: Amend SQL for Deploy [% change %]
+
+from -- [% object_name %]
+  [% object_schema %].[% object_name %]

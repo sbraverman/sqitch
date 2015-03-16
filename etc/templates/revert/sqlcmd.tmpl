@@ -1,7 +1,5 @@
 -- Revert [% change %]
 
-begin transaction [% object_type %]_[% object_schema %]_[% object_name %]
+-- TODO: Amend SQL for Revert [% change %]
 
 drop [% object_type %] [% object_schema %].[% object_name %]
-
-commit transaction [% object_type %]_[% object_schema %]_[% object_name %]

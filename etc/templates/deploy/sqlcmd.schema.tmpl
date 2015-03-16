@@ -7,4 +7,7 @@
 -- conflicts: [% item %]
 [% END -%]
 
-create [% object_type %] [% object_name %] authorization dbo
+-- TODO: Amend SQL for Deploy [% change %]
+
+create schema [% object_name %]
+  authorization dbo
