@@ -2,11 +2,17 @@ App/Sqitch version 0.999_1
 ========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
-[![Build Status](https://travis-ci.org/theory/sqitch.svg?branch=master)](https://travis-ci.org/theory/sqitch)
+[![Build Status](https://travis-ci.org/theory/sqitch.svg)](https://travis-ci.org/theory/sqitch)
+[![Coverage Status](https://coveralls.io/repos/theory/sqitch/badge.svg)](https://coveralls.io/r/theory/sqitch)
 
 [Sqitch](http://sqitch.org/) is a database change management application. It
+<<<<<<< HEAD
 currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.6.4+, Oracle 10g+,
 Firebird 2.0+, Vertica 6.0+, and MS SQL Server 2005+.
+=======
+currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.1+, Oracle 10g+,
+Firebird 2.0+, and Vertica 6.0+.
+>>>>>>> refs/heads/theory-master
 
 What makes it different from your typical
 [migration](http://guides.rubyonrails.org/migrations.html) approaches? A few
@@ -74,8 +80,6 @@ There have also been a number of presentations on Sqitch:
 
 Installation
 ------------
-
-[![Build Status](https://travis-ci.org/theory/sqitch.png)](https://travis-ci.org/theory/sqitch)
 
 To install Sqitch from a distribution download, type the following:
 
