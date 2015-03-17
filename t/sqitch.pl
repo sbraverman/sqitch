@@ -1,5 +1,10 @@
+use IPC::System::Simple qw(system capture);
+
+
+
+
 
 if ($ARGV[0] eq 'help')
 {
-	run_sqitch $ARGV;
+	system($^X, "run_sqitch.pl", @ARGS);
 } 
