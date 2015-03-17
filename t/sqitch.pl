@@ -21,7 +21,6 @@ if (($ARGV[1] eq 'alpha' || $ARGV[1] eq 'beta' || $ARGV[1] eq 'live') &&
     	system("dsmod group \"CN=Informatics Systems Admins, OU=Informatics Service Accounts, OU=Service Accounts, DC=sdhc, DC=xsdhis, DC=nhs, DC=uk\" -addmbr \"CN=%USERNAME%, OU=Informatics Team, OU=Unmanaged Users, OU=Users, OU=SDHIS, DC=sdhc, DC=xsdhis, DC=nhs, DC=uk\"");
     	system($^X, $dirname . "\\run_sqitch.pl", @ARGV);
     	system("dsmod group \"CN=Informatics Systems Admins, OU=Informatics Service Accounts, OU=Service Accounts, DC=sdhc, DC=xsdhis, DC=nhs, DC=uk\" -rmmbr \"CN=%USERNAME%, OU=Informatics Team, OU=Unmanaged Users, OU=Users, OU=SDHIS, DC=sdhc, DC=xsdhis, DC=nhs, DC=uk\"");
-    	print 'escalated';
     }
     else
     {
