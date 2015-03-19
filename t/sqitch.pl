@@ -2,6 +2,22 @@ use IPC::System::Simple qw(system capture);
 use File::Basename;
 
 my $dirname = dirname(__FILE__);
+my @ecladdout = [];
+
+if ($ARGV[0] eq 'ecladd') # ecladd indicates that the Sqitch Add was called from Eclipse
+{
+    $ecladdout[0] = 'add';
+    $ecladdout[1] = $ARGV[4] . '.' . $ARGV[5] . '.' . $ARGV[6]; # Name of Object (type.schema.name)
+    $ecladdout[2] = '--template-directory ' . $ARGV[1] . '/sqitch/etc/templates/'; # $ARGV[1] is the Eclipse workspace location
+    $ecladdout[3] = '-t sqlcmd.' . $ARGV[4]; # $ARGV[4] is the template type (table,view,schema etc.)
+    $ecladdout[4] = '-r ' . join(' -r ',split(/,/,$ARGV[3])); # $ARGV[3] is a comma-separated list of dependencies
+    $ecladdout[5] = '-s object_schema=' . $ARGV[5]; # $ARGV[5] is the schema for the object (used in template)
+    $ecladdout[6] = '-s object_name=' . $ARGV[6]; # $ARGV[6] is the object name (used in template)
+    $ecladdout[7] = '-n "' . $ARGV[7] .'"'; # $ARGV[7] is the Git commit message
+
+    system($^X, $dirname . "\\run_sqitch.pl", @ecladdout);
+    exit;
+}
 
 if ($ARGV[0] eq 'help')
 {
