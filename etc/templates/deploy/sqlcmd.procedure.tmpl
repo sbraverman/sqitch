@@ -7,9 +7,7 @@
 -- conflicts: [% item %]
 [% END -%]
 
-create view [% object_schema %].[% object_name %] as
-select
-
-	-- TODO: Amend SQL for Deploy [% change %]
-
-from 
+create procedure [% object_schema %].[% object_name %] as
+	begin
+	  -- TODO: Amend SQL for Deploy [% change %]
+	end

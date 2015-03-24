@@ -2,9 +2,9 @@
 
 if not exists (
 	select *
-	from information_schema.tables
+  from information_schema.routines
   where
- 		table_type = 'BASE TABLE' and
+    routine_type = 'FUNCTION' and
     table_schema = '[% object_schema %]' and
     table_name = '[% object_name %]'
 )
