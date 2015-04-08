@@ -118,7 +118,7 @@ sub _select_state {
     my $schema = $self->_schema;
     
     $dbh->selectrow_hashref(qq{
-        SELECT TOP 1 c.change_id
+        SELECT c.change_id
              , ${hshcol}c.change
              , c.project
              , c.note
@@ -143,6 +143,7 @@ sub _select_state {
              , c.planner_email
              , c.planned_at
          ORDER BY c.committed_at DESC
+         LIMIT 1
     }, undef, $project // $self->plan->project );
 }
 
