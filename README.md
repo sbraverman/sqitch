@@ -1,5 +1,5 @@
-App/Sqitch version 0.999_1
-========================
+App/Sqitch version 0.9992
+=========================
 
 [![CPAN version](https://badge.fury.io/pl/App-Sqitch.svg)](http://badge.fury.io/pl/App-Sqitch)
 [![Build Status](https://travis-ci.org/theory/sqitch.svg)](https://travis-ci.org/theory/sqitch)
@@ -43,7 +43,7 @@ things:
 
 *   Iterative Development
 
-    Up until you tag and release your application, you can modify your change
+    Up until you tag and release your project, you can modify your change
     deployment scripts as often as you like. They're not locked in just
     because they've been committed to your VCS. This allows you to take an
     iterative approach to developing your database schema. Or, better, you can

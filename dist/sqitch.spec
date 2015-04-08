@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.999_1
+Version:        0.9992
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -17,6 +17,7 @@ BuildRequires:  perl(Config)
 BuildRequires:  perl(Config::GitLike) >= 1.11
 BuildRequires:  perl(constant)
 BuildRequires:  perl(DateTime)
+BuildRequires:  perl(DateTime::TimeZone)
 BuildRequires:  perl(DBI)
 BuildRequires:  perl(Devel::StackTrace) >= 1.30
 BuildRequires:  perl(Digest::SHA)
@@ -84,6 +85,7 @@ Requires:       perl(Config)
 Requires:       perl(Config::GitLike) >= 1.11
 Requires:       perl(constant)
 Requires:       perl(DateTime)
+Requires:       perl(DateTime::TimeZone)
 Requires:       perl(Devel::StackTrace) >= 1.30
 Requires:       perl(Digest::SHA)
 Requires:       perl(Encode)
@@ -272,6 +274,10 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Fri Mar 3 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9991-1
+- Upgrade to v0.9991.
+- Reduced required MySQL version to 5.1.
+
 * Thu Feb 12 2015 David E. Wheeler <david.wheeler@iovation.com> 0.999-1
 - Upgrade to v0.999.
 

@@ -15,7 +15,7 @@ use namespace::autoclean;
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9992';
 
 sub destination {
     my $self = shift;
@@ -92,6 +92,7 @@ has dbh => (
         $self->use_driver;
 
         my $uri = $self->uri;
+        local $ENV{PGCLIENTENCODING} = 'UTF8';
         DBI->connect($uri->dbi_dsn, scalar $self->username, scalar $self->password, {
             PrintError        => 0,
             RaiseError        => 0,

@@ -315,6 +315,17 @@ cmp_deeply $parsed, {
     ],
 }, 'Should have lines and changes for tagless plan';
 
+# Try plans with DOS line endings.
+$file = file qw(t plans dos.plan);
+$fh = $file->open('<:utf8_strict');
+ok $parsed = $plan->_parse($file, $fh), 'Should read plan with DOS line endings';
+is sorted, 1, 'Should have sorted changes';
+cmp_deeply delete $parsed->{pragmas}, {
+    syntax_version => App::Sqitch::Plan::SYNTAX_VERSION,
+    project        => 'dos',
+}, 'Should have captured the dos pragmas';
+
+
 # Try a plan with a bad change name.
 $file = file qw(t plans bad-change.plan);
 $fh = $file->open('<:utf8_strict');
@@ -1375,8 +1386,9 @@ throws_ok { $plan->add(name => 'blow') } 'App::Sqitch::X',
     'Should get error trying to add duplicate change';
 is $@->ident, 'plan', 'Duplicate change error ident should be "plan"';
 is $@->message, __x(
-    qq{Change "{change}" already exists.\nUse "sqitch rework" to copy and rework it},
+    qq{Change "{change}" already exists in plan {file}.\nUse "sqitch rework" to copy and rework it},
     change => 'blow',
+    file   => $plan->file,
 ), 'And the error message should suggest "rework"';
 
 # Should choke on an invalid change names.
@@ -1507,8 +1519,9 @@ throws_ok { $plan->rework( name => 'nonexistent' ) } 'App::Sqitch::X',
     'rework should die on nonexistent change';
 is $@->ident, 'plan', 'Nonexistent change error ident should be "plan"';
 is $@->message, __x(
-    qq{Change "{change}" does not exist.\nUse "sqitch add {change}" to add it to the plan},
+    qq{Change "{change}" does not exist in {file}.\nUse "sqitch add {change}" to add it to the plan},
     change => 'nonexistent',
+    file   => $plan->file,
 ), 'And the error should suggest "sqitch add"';
 
 # Try reworking without an intervening tag.

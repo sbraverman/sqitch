@@ -18,7 +18,7 @@ use Moo;
 use App::Sqitch::Types qw(Str Int HashRef ChangeList LineList Maybe Sqitch URI File Target);
 use constant SYNTAX_VERSION => '1.0.0';
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9992';
 
 # Like [:punct:], but excluding _. Copied from perlrecharclass.
 my $punct = q{-!"#$%&'()*+,./:;<=>?@[\\]^`{|}~};
@@ -189,7 +189,7 @@ sub _parse {
 
     # First, find pragmas.
     HEADER: while ( my $line = $fh->getline ) {
-        chomp $line;
+        $line =~ s/\r?\n\z//;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
@@ -266,7 +266,7 @@ sub _parse {
     ) unless $pragmas{project};
 
     LINE: while ( my $line = $fh->getline ) {
-        chomp $line;
+        $line =~ s/\r?\n\z//;
 
         # Grab blank lines first.
         if ($line =~ /\A(?<lspace>[[:blank:]]*)(?:#[[:blank:]]*(?<note>.+)|$)/) {
@@ -795,9 +795,10 @@ sub add {
     if ( defined( my $idx = $changes->index_of( $p{name} . '@HEAD' ) ) ) {
         my $tag_idx = $changes->index_of_last_tagged;
         hurl plan => __x(
-            qq{Change "{change}" already exists.\n}
+            qq{Change "{change}" already exists in plan {file}.\n}
             . 'Use "sqitch rework" to copy and rework it',
             change => $p{name},
+            file   => $self->file,
         );
     }
 
@@ -827,9 +828,10 @@ sub rework {
     my ( $self, %p ) = @_;
     my $changes = $self->_changes;
     my $idx   = $changes->index_of( $p{name} . '@HEAD') // hurl plan => __x(
-        qq{Change "{change}" does not exist.\n}
+        qq{Change "{change}" does not exist in {file}.\n}
         . 'Use "sqitch add {change}" to add it to the plan',
         change => $p{name},
+        file   => $self->file,
     );
 
     my $tag_idx = $changes->index_of_last_tagged;
