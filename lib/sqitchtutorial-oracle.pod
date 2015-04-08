@@ -482,7 +482,7 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/users.sql> should look like
 this:
 
-  -- Deploy users
+  -- Deploy flipr:users to oracle
   -- requires: appschema
 
   CREATE TABLE flipr.users (
@@ -678,7 +678,7 @@ planned the change, and a note.
 Let's write the code for the new changes. Here's what
 F<deploy/insert_user.sql> should look like:
 
-  -- Deploy insert_user
+  -- Deploy flipr:insert_user to oracle
   -- requires: users
   -- requires: appschema
 
@@ -723,7 +723,7 @@ errors propagate and a broken function get dropped.
 
 Here's what F<verify/insert_user.sql> might look like:
 
-  -- Verify insert_user
+  -- Verify flipr:insert_user on oracle
   DESCRIBE flipr.insert_user;
 
 We simply take advantage of the fact that C<DESCRIBE> throws an exception if
@@ -731,12 +731,12 @@ the specified function does not exist.
 
 And F<revert/insert_user.sql> should look something like this:
 
-  -- Revert insert_user
+  -- Revert flipr:insert_user from oracle
   DROP PROCEDURE flipr.insert_user;
 
 Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
 
-  -- Deploy change_pass
+  -- Deploy flipr:change_pass to oracle
   -- requires: users
   -- requires: appschema
 
@@ -781,13 +781,13 @@ Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
 We again need the C<DECLARE> PL/SQL block to detect compilation warnings and
 make the script die. Use C<DESCRIBE> in F<verify/change_pass.sql> again:
 
-  -- Verify change_pass
+  -- Verify flipr:change_pass on oracle
   DESCRIBE flipr.change_pass;
 
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
 something like:
 
-  -- Revert change_pass
+  -- Revert flipr:change_pass from oracle
   DROP PROCEDURE flipr.change_pass;
 
 Try em out!
@@ -977,7 +977,7 @@ Now we can add a new change to create a table for our flips.
 
 You know the drill by now. Edit F<deploy/flips.sql>:
 
-  -- Deploy flips
+  -- Deploy flipr:flips to oracle
   -- requires: appschema
   -- requires: users
 
@@ -1002,12 +1002,12 @@ You know the drill by now. Edit F<deploy/flips.sql>:
 
 Edit F<verify/flips.sql>:
 
-  -- Verify flips
+  -- Verify flipr:flips on oracle
   DESCRIBE flipr.flips;
 
 And edit F<revert/flips.sql>:
 
-  -- Revert flips
+  -- Revert flipr:flips from oracle
   DROP TRIGGER  flipr.flip_pk;
   DROP SEQUENCE flipr.flip_id_seq;
   DROP TABLE    flipr.flips;
@@ -1049,7 +1049,7 @@ Now comes the time to add functions to manage flips. I'm sure you have things
 nailed down now. Go ahead and add C<insert_flip> and C<delete_flip> changes
 and commit them. The C<insert_flip> deploy script might look something like:
 
-  -- Deploy insert_flip
+  -- Deploy flipr:insert_flip to oracle
   -- requires: flips
   -- requires: appschema
 
@@ -1084,7 +1084,7 @@ and commit them. The C<insert_flip> deploy script might look something like:
 
 And the C<delete_flip> deploy script might look something like:
 
-  -- Deploy delete_flip
+  -- Deploy flipr:delete_flip to oracle
   -- requires: flips
   -- requires: appschema
 
@@ -1119,22 +1119,22 @@ And the C<delete_flip> deploy script might look something like:
 
 The C<verify> scripts are:
 
-  -- Verify insert_flip
+  -- Verify flipr:insert_flip on oracle
   DESCRIBE flipr.insert_flip;
 
 And:
 
-  -- Verify delete_flip
+  -- Verify flipr:delete_flip on oracle
   DESCRIBE flipr.delete_flip;
 
 The C<revert> scripts are:
 
-  -- Revert insert_flip
+  -- Revert flipr:insert_flip from oracle
   DROP PROCEDURE flipr.insert_flip;
 
 And:
 
-  -- Revert delete_flip
+  -- Revert flipr:delete_flip from oracle
   DROP PROCEDURE flipr.delete_flip;
 
 Check the L<example git repository|https://github.com/theory/sqitch-oracle-intro> for
@@ -1481,7 +1481,7 @@ L<cryptographic salt|https://en.wikipedia.org/wiki/Salt_(cryptography)>. This
 will allow the password hashes to be stored with random hashing. So we'll need
 to add the function. The deploy script should be:
 
-  -- Deploy crypt
+  -- Deploy flipr:crypt to oracle
   -- requires: appschema
 
   CREATE OR REPLACE FUNCTION flipr.crypt(
@@ -1517,12 +1517,12 @@ to add the function. The deploy script should be:
 
 And the revert script should be:
 
-  -- Revert crypt.
+  -- Revert flipr:crypt. from oracle
   DROP FUNCTION flipr.crypt;
 
 And, as usual, the verify script should just use C<DESCRIBE>:
 
-  -- Verify crypt
+  -- Verify flipr:crypt on oracle
   DESCRIBE flipr.crypt;
 
 With that change in place and committed, we're ready to make use of the
@@ -1640,7 +1640,7 @@ script to switch to C<crypt()>. Make this change to
 F<deploy/insert_user.sql>:
 
   @@ -1,6 +1,7 @@
-   -- Deploy insert_user
+   -- Deploy flipr:insert_user to oracle
    -- requires: users
    -- requires: appschema
   +-- requires: crypt
@@ -1671,7 +1671,7 @@ Go ahead and rework the C<change_pass> change, too:
 And make this change to F<deploy/change_pass.sql>:
 
   @@ -1,6 +1,7 @@
-   -- Deploy change_pass
+   -- Deploy flipr:change_pass to oracle
    -- requires: users
    -- requires: appschema
   +-- requires: crypt
@@ -1773,7 +1773,7 @@ examine the body of the function by querying the
 L<C<all_source>|http://docs.oracle.com/cd/B19306_01/server.102/b14237/statviews_2063.htm>
 view. So the C<insert_user> verify script looks like this:
 
-  -- Verify insert_user
+  -- Verify flipr:insert_user on oracle
 
   DESCRIBE flipr.insert_user;
 
@@ -1785,7 +1785,7 @@ view. So the C<insert_user> verify script looks like this:
 
 And the C<change_pass> verify script looks like this:
 
-  -- Verify change_pass
+  -- Verify flipr:change_pass on oracle
 
   DESCRIBE flipr.change_pass;
 

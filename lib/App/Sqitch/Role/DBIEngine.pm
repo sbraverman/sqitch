@@ -11,7 +11,7 @@ use App::Sqitch::X qw(hurl);
 use Locale::TextDomain qw(App-Sqitch);
 use namespace::autoclean;
 
-our $VERSION = '0.999_1';
+our $VERSION = '0.9992';
 
 requires 'dbh';
 requires 'sqitch';
@@ -888,7 +888,7 @@ sub change_id_for {
     my $project = $p{project} || $self->plan->project;
     if ( my $change = $p{change} ) {
         if ( my $tag = $p{tag} ) {
-            # Ther is nothing before the first tag.
+            # There is nothing before the first tag.
             return undef if $tag eq 'ROOT' || $tag eq 'FIRST';
 
             # Find closest to the end for @HEAD.
@@ -896,6 +896,7 @@ sub change_id_for {
                 if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
+            my $limit = $self->_can_limit ? "\n                 LIMIT 1" : '';
             return $dbh->selectcol_arrayref(qq{
                 SELECT changes.change_id
                   FROM $schema changes
@@ -905,6 +906,7 @@ sub change_id_for {
                  WHERE changes.project = ?
                    AND changes.change  = ?
                    AND tags.tag        = ?
+                 ORDER BY changes.committed_at DESC$limit
             }, undef, $project, $change, '@' . $tag)->[0];
         }
 

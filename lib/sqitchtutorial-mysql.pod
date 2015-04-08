@@ -148,7 +148,7 @@ deploy, revert, and verify scripts that represent the change. Now we edit
 these files. The C<deploy> script's job is to create the table. By default,
 the F<deploy/appuser.sql> file looks like this:
 
-  -- Deploy appuser
+  -- Deploy flipr:appuser to mysql
 
   BEGIN;
 
@@ -159,7 +159,7 @@ the F<deploy/appuser.sql> file looks like this:
 What we want to do is to replace the C<XXX> comment with the C<CREATE USER>
 statement, like so:
 
-  -- Deploy users
+  -- Deploy flipr:users to mysql
 
   BEGIN;
 
@@ -170,7 +170,7 @@ statement, like so:
 The C<revert> script's job is to precisely revert the change to the deploy
 script, so we edit this to F<revert/appuser.sql> to look like this:
 
-  -- Revert users
+  -- Revert flipr:users from mysql
 
   BEGIN;
 
@@ -440,7 +440,7 @@ idea to be explicit about dependencies.
 Now edit the scripts. When you're done, F<deploy/users.sql> should look like
 this:
 
-  -- Deploy users
+  -- Deploy flipr:users to mysql
   -- requires: appuser
 
   BEGIN;
@@ -631,7 +631,7 @@ planned the change, and a note.
 Let's write the code for the new changes. Here's what
 F<deploy/insert_user.sql> should look like:
 
-  -- Deploy insert_user
+  -- Deploy flipr:insert_user to mysql
   -- requires: users
   -- requires: appuser
 
@@ -658,7 +658,7 @@ F<deploy/insert_user.sql> should look like:
 Here's what F<verify/insert_user.sql> might look like, using the Sqitch
 C<checkit()> function again:
 
-  -- Verify insert_user
+  -- Verify flipr:insert_user on mysql
 
   BEGIN;
 
@@ -674,14 +674,14 @@ in the C<mysql.proc> table and throw an exception if it does not exist.
 
 And F<revert/insert_user.sql> should look something like this:
 
-  -- Revert insert_user
+  -- Revert flipr:insert_user from mysql
   BEGIN;
   DROP PROCEDURE insert_user;
   COMMIT;
 
 Now for C<change_pass>; F<deploy/change_pass.sql> might look like this:
 
-  -- Deploy change_pass
+  -- Deploy flipr:change_pass to mysql
   -- requires: users
   -- requires: appuser
 
@@ -721,7 +721,7 @@ Use C<checkit()> in F<verify/change_pass.sql> again:
 And of course, its C<revert> script, F<revert/change_pass.sql>, should look
 something like:
 
-  -- Revert change_pass
+  -- Revert flipr:change_pass from mysql
   BEGIN;
   DROP FUNCTION change_pass;
   REVERT;
@@ -899,7 +899,7 @@ Now we can add a new change to create a table for our flips.
 
 You know the drill by now. Edit F<deploy/flips.sql>:
 
-  -- Deploy flips
+  -- Deploy flipr:flips to mysql
   -- requires: appuser
   -- requires: users
 
@@ -918,7 +918,7 @@ You know the drill by now. Edit F<deploy/flips.sql>:
 
 Edit F<verify/flips.sql>:
 
-  -- Verify flips
+  -- Verify flipr:flips on mysql
 
   BEGIN;
 
@@ -933,7 +933,7 @@ Edit F<verify/flips.sql>:
 
 And edit F<revert/flips.sql>:
 
-  -- Revert flips
+  -- Revert flipr:flips from mysql
 
   BEGIN;
 
@@ -981,7 +981,7 @@ Now comes the time to add functions to manage flips. I'm sure you have things
 nailed down now. Go ahead and add C<insert_flip> and C<delete_flip> changes
 and commit them. The C<insert_flip> deploy script might look something like:
 
-  -- Deploy insert_flip
+  -- Deploy flipr:insert_flip to mysql
   -- requires: flips
   -- requires: appuser
 
@@ -1008,7 +1008,7 @@ and commit them. The C<insert_flip> deploy script might look something like:
 
 And the C<delete_flip> deploy script might look something like:
 
-  -- Deploy delete_flip
+  -- Deploy flipr:delete_flip to mysql
   -- requires: flips
   -- requires: appuser
 
@@ -1033,7 +1033,7 @@ And the C<delete_flip> deploy script might look something like:
 
 The C<verify> scripts are:
 
-  -- Verify insert_flip
+  -- Verify flipr:insert_flip on mysql
 
   BEGIN;
 
@@ -1046,7 +1046,7 @@ The C<verify> scripts are:
 
 And:
 
-  -- Verify delete_flip
+  -- Verify flipr:delete_flip on mysql
 
   BEGIN;
 
@@ -1059,7 +1059,7 @@ And:
 
 The C<revert> scripts are:
 
-  -- Revert insert_flip
+  -- Revert flipr:insert_flip from mysql
 
   BEGIN;
 
@@ -1069,7 +1069,7 @@ The C<revert> scripts are:
 
 And:
 
-  -- Revert delete_flip
+  -- Revert flipr:delete_flip from mysql
 
   BEGIN;
 
@@ -1626,7 +1626,7 @@ examine the body of the function as returned by
 L<C<INFORMATION_SCHEMA.ROUTINES>|http://dev.mysql.com/doc/refman/5.6/en/routines-table.html>
 So the C<insert_user> verify script looks like this:
 
-  -- Verify insert_user
+  -- Verify flipr:insert_user on mysql
 
   BEGIN;
 
@@ -1640,7 +1640,7 @@ So the C<insert_user> verify script looks like this:
 
 And the C<change_pass> verify script looks like this:
 
-  -- Verify change_pass
+  -- Verify flipr:change_pass on mysql
 
   BEGIN;
 
