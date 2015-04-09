@@ -176,7 +176,9 @@ sub deploy {
     my ( $self, $to, $mode ) = @_;
     my $sqitch   = $self->sqitch;
    
-    $self->initialize;
+    if ($self->name eq 'sqlcmd') {
+      $self->initialize;
+    }
    
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
