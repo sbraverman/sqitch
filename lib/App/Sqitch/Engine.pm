@@ -175,11 +175,12 @@ sub use_driver {
 sub deploy {
     my ( $self, $to, $mode ) = @_;
     my $sqitch   = $self->sqitch;
-   
-    $self->initialize;
-   
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
+
+    if ($self->name eq 'sqlcmd') {
+              $self->initialize;
+    }
     
     hurl plan => __ 'Nothing to deploy (empty plan)' if $to_index < 0;
 
