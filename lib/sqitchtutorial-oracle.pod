@@ -457,7 +457,7 @@ changes are verified after deploying them:
   > sqitch config --bool rebase.verify true
 
 We'll see the L<C<rebase>|sqitch-rebase> command a bit later. In the meantime,
-let's commit the new configuration and and make some more changes!
+let's commit the new configuration and make some more changes!
 
   > git commit -am 'Set default target and always verify.'
   [master c4a308a] Set default target and always verify.
@@ -493,7 +493,7 @@ this:
 
 A few things to notice here. On the second line, the dependence on the
 C<appschema> change has been listed in a comment. This doesn't do anything,
-but the default SQLite C<deploy> template lists it here for your reference
+but the default Oracle C<deploy> template lists it here for your reference
 while editing the file. Useful, right?
 
 The table itself will been created in the C<flipr> schema. This is why we need
@@ -516,9 +516,6 @@ from the table with a false C<WHERE> clause. Add this to F<verify/users.sql>:
   SELECT nickname, password, timestamp
     FROM flipr.users
    WHERE 1 = 1;
-
-Note that we have once again set the SQL*Plus error handling. In truth, this
-line should be in I<all> Sqitch scripts.
 
 Now for the revert script: all we have to do is drop the table. Add this to
 F<revert/users.sql>:
@@ -924,6 +921,7 @@ C<@v1.0.0-dev1>. Let's have a look at the status:
   # Project:  flipr
   # Change:   e1c9df6a95da835769eb560790588c16174f78df
   # Name:     change_pass
+  # Tag:      @v1.0.0-dev1
   # Deployed: 2013-12-31 16:40:02 -0800
   # By:       Marge N. O’Vera <marge@example.com>
   # 
@@ -944,7 +942,8 @@ everything up for release:
 
 Now we can package the F<bundle> directory and distribute it. When it gets
 installed somewhere, users can use Sqitch to deploy to the database. Let's try
-deploying it to yet another database (again, assuming you have a SID named C<oracle_prod>:
+deploying it to yet another database (again, assuming you have a SID named
+C<flipr_prod>:
 
   > cd bundle
   > sqitch deploy db:oracle://scott:tiger@/flipr_prod

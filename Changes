@@ -2,11 +2,31 @@ Revision history for Perl extension App::Sqitch
 
 0.9992
      - On PostgreSQL, Sqitch now sets the `client_encoding` parameter to
-       `UTF8`. This ensures that data sent to and from the databse should
-       always be properly encoded and decoded.
+       `UTF8` for its own connection to the database. This ensures that data
+       sent to and from the databse should always be properly encoded and
+       decoded. Users should still set the proper encodings for change scripts
+       as appropriate.
      - Fixed test failures due to path differences on Windows.
      - DateTime::TimeZone is now explicitly required in an attempt to head off
        "Cannot determine local time zone" errors.
+     - Corrected some typos and thinkos in `sqitchtutorial-oracle`, thanks to
+       George Hartzell.
+     - Improved the script to upgrade an Oracle registry to v1.0 to support
+       versions prior to Oracle 12, thanks to Timothy Procter.
+     - Added missing closing parenthesis to the "Nothing to deploy" message.
+       Thanks to George Hartzell for the pull request (Issue #226).
+     - Replaced the unique constraint on the `script_hash` column in the
+       `changes` registry table with a unique constraint on `project` and
+       `script_hash`. This is to allow a deploy script to be used in more than
+       one project in a single database. This change increments the registry
+       version to v1.1. Thanks to Timothy Procter for the report.
+     - Updated the registry check constraints to have consistent names on the
+       engines that support them. This will make it easier to modify the
+       constraints in the future.
+     - Fixed precision issues with the registry version on MySQL and Firebird.
+     - Added comment to sqitch-passwords guide that MySQL::Config is required
+       to read passwords from the MySQL configuration files. Thanks to
+       Sterling Hanenkamp for the patch!
 
 0.9991 2015-04-03T23:14:39Z
      [Improvements]

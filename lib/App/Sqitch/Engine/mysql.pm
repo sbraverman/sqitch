@@ -174,7 +174,6 @@ has _fractional_seconds => (
     },
 );
 
-
 sub mysql { @{ shift->_mysql } }
 
 sub key    { 'mysql' }

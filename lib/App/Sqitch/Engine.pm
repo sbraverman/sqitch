@@ -12,7 +12,7 @@ use List::Util qw(first max);
 use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
-use constant registry_release => '1.0';
+use constant registry_release => '1.1';
 
 our $VERSION = '0.9992';
 
@@ -193,7 +193,7 @@ sub deploy {
         # Just return if there is nothing to do.
         if ($to_index == $plan->position) {
             $sqitch->info(__x(
-                'Nothing to deploy (already at "{change}"',
+                'Nothing to deploy (already at "{change}")',
                 change => $to
             ));
             return $self;
