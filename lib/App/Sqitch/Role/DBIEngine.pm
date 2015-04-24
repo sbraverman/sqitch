@@ -75,7 +75,9 @@ sub registry_version {
     my $self = shift;
     my $schema = $self->_schema;
     try {
-        $self->dbh->selectcol_arrayref(qq{SELECT MAX(version) FROM $schema releases}, undef)->[0];
+        sprintf '%.1f', $self->dbh->selectcol_arrayref(
+            'SELECT MAX(version) FROM $schema releases'
+        )->[0];
     } catch {
         return 0 if $self->_no_table_error;
         die $_;

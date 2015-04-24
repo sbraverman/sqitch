@@ -95,10 +95,18 @@ sub run {
         };
         ok $engine->initialized, 'Database should now be initialized';
         ok !$engine->needs_upgrade, 'Registry should not need upgrading';
-        is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT version, installer_name, installer_email FROM releases'
-        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
-            'The release should be registered';
+        my $get_releases = sub {
+            my $releases = $engine->dbh->selectall_arrayref(q{
+                SELECT version, installer_name, installer_email
+                  FROM releases
+                 ORDER BY version
+            });
+            $_->[0] = sprintf '%.1f', $_->[0] for @{ $releases };
+            return $releases;
+        };
+        is_deeply $get_releases->(), [
+            [$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]
+        ], 'The release should be registered';
 
         # Let's make sure upgrades work.
         $engine->dbh->do('DROP TABLE releases');
@@ -112,13 +120,17 @@ sub run {
                 'From {old} to {new}',
                 old => 0,
                 new => '1.0',
+            ), '  * ' . __x(
+                'From {old} to {new}',
+                old => '1.0',
+                new => '1.1',
             )], 'Should have info output for upgrade';
         }
         ok !$engine->needs_upgrade, 'Registry should no longer need upgrading';
-        is_deeply $engine->dbh->selectall_arrayref(
-            'SELECT version, installer_name, installer_email FROM releases'
-        ), [[$engine->registry_release + 0, $sqitch->user_name, $sqitch->user_email]],
-            'The release should be registered again';
+        is_deeply $get_releases->(), [
+            [ '1.0', $sqitch->user_name, $sqitch->user_email ],
+            [ '1.1', $sqitch->user_name, $sqitch->user_email ],
+        ], 'The release should be registered again';
 
         # Try it with a different Sqitch DB.
         $target = App::Sqitch::Target->new(

@@ -62,7 +62,8 @@ CREATE TABLE dbo.changes(
   planner_email varchar(255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
-  change_id ASC
+	change_id ASC,
+	script_hash ASC
 )
 ) 
 

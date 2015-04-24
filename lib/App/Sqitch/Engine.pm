@@ -12,7 +12,7 @@ use List::Util qw(first max);
 use URI::db 0.15;
 use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
-use constant registry_release => '1.0';
+use constant registry_release => '1.1';
 
 our $VERSION = '0.9992';
 
@@ -175,13 +175,15 @@ sub use_driver {
 sub deploy {
     my ( $self, $to, $mode ) = @_;
     my $sqitch   = $self->sqitch;
-   
     if ($self->name eq 'sqlcmd') {
       $self->initialize;
     }
-   
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
+
+    if ($self->name eq 'sqlcmd') {
+              $self->initialize;
+    }
     
     hurl plan => __ 'Nothing to deploy (empty plan)' if $to_index < 0;
 
@@ -194,7 +196,7 @@ sub deploy {
         # Just return if there is nothing to do.
         if ($to_index == $plan->position) {
             $sqitch->info(__x(
-                'Nothing to deploy (already at "{change}"',
+                'Nothing to deploy (already at "{change}")',
                 change => $to
             ));
             return $self;
