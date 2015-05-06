@@ -1,0 +1,13 @@
+-- Deploy [% project %]:[% change %] to [% engine %]
+
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+create table [% object_schema %].[% object_name %]
+	(
+		-- TODO: Amend SQL for Deploy [% change %]
+	)

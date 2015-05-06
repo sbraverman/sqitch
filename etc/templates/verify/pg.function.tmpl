@@ -1,0 +1,8 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+select 1/count(*)
+  from information_schema.routines
+  where
+    routine_type = 'FUNCTION' and
+    table_schema = '[% object_schema %]' and
+    table_name = '[% object_name %]'

@@ -1,0 +1,10 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+	select 1/count(*)
+	from sys.database_principals
+	where
+	  -- filter: 'R' = role
+		type = 'R' and
+		-- filter: role name
+		name = '[% object_name %]'
+
