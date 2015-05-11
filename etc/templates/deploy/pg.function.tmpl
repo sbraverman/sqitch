@@ -8,10 +8,10 @@
 [% END -%]
 
 create or replace function [% object_schema %].[% object_name %]
-  (@variable datatype)
-  returns datatype as
+  (<variable> <datatype>)
+  returns <datatype> as $$
 	begin
 	  -- TODO: Amend SQL for Deploy [% change %]
-	  return @variable;
-	end;
-  language;
+	  return <variable>;
+	end; $$
+  language <sql/plpgsql>;
