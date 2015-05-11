@@ -186,13 +186,13 @@ sub _run_registry_file {
     }
 
     # Is this XC?
-    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_probe('-c', q{
-        SELECT count(*)
-          FROM pg_catalog.pg_proc p
-          JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
-         WHERE nspname = 'pg_catalog'
-           AND proname = 'pgxc_version';
-    });
+#    $opts = ' DISTRIBUTE BY REPLICATION' if $self->_probe('-c', q{
+#        SELECT count(*)
+#          FROM pg_catalog.pg_proc p
+#          JOIN pg_catalog.pg_namespace n ON p.pronamespace = n.oid
+#         WHERE nspname = 'pg_catalog'
+#           AND proname = 'pgxc_version';
+#    });
 
     if ($maj < 9) {
         # Need to write a temp file; no :"registry" variable syntax.

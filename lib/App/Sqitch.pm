@@ -465,6 +465,7 @@ sub spool {
 
 sub probe {
     my ($ret) = shift->capture(@_);
+    print $ret;
     chomp $ret;
     return $ret;
 }
