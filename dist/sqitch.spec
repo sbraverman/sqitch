@@ -1,5 +1,5 @@
 Name:           sqitch
-Version:        0.9992
+Version:        0.9993
 Release:        1%{?dist}
 Summary:        Sane database change management
 License:        MIT
@@ -136,6 +136,7 @@ Requires:       perl(User::pwent)
 Requires:       perl(utf8)
 Requires:       perl(warnings)
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
+Provides:       sqitch
 
 %define etcdir %(%{__perl} -MConfig -E 'say "$Config{prefix}/etc"')
 
@@ -180,6 +181,7 @@ Requires:       sqitch >= %{version}
 Requires:       postgresql >= 8.4.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::Pg) >= 2.0.0
+Provides:       sqitch-pg
 
 %description pg
 Sqitch provides a simple yet robust interface for database change
@@ -196,6 +198,7 @@ Requires:       sqitch >= %{version}
 Requires:       sqlite
 Requires:       perl(DBI)
 Requires:       perl(DBD::SQLite) >= 1.37
+Provides:       sqitch-sqlite
 
 %description sqlite
 Sqitch provides a simple yet robust interface for database change
@@ -212,6 +215,7 @@ Requires:       sqitch >= %{version}
 Requires:       oracle-instantclient11.2-sqlplus
 Requires:       perl(DBI)
 Requires:       perl(DBD::Oracle) >= 1.23
+Provides:       sqitch-oracle
 
 %description oracle
 Sqitch provides a simple yet robust interface for database change
@@ -229,6 +233,7 @@ Requires:       mysql >= 5.1.0
 Requires:       perl(DBI)
 Requires:       perl(DBD::mysql) >= 4.018
 Requires:       perl(MySQL::Config)
+Provides:       sqitch-mysql
 
 %description mysql
 Sqitch provides a simple yet robust interface for database change
@@ -247,7 +252,8 @@ Requires:       perl(DBI)
 Requires:       perl(DBD::Firebird) >= 1.11
 Requires:       perl(Time::HiRes)
 Requires:       perl(Time::Local)
-BuildRequires:  firebird-classic >= 2.5.0
+BuildRequires:  firebird >= 2.5.0
+Provides:       sqitch-firebird
 
 %description firebird
 Sqitch provides a simple yet robust interface for database change
@@ -261,9 +267,11 @@ package bundles the Sqitch Firebird support.
 Summary:        Sane database change management for Vertica
 Group:          Development/Libraries
 Requires:       sqitch >= %{version}
-Requires:       vertica-client >= 7.0.0
+Requires:       libverticaodbc.so
+Requires:       /opt/vertica/bin/vsql
 Requires:       perl(DBI)
 Requires:       perl(DBD::ODBC) >= 1.43
+Provides:       sqitch-vertica
 
 %description vertica
 Sqitch provides a simple yet robust interface for database change management.
@@ -274,6 +282,14 @@ Sqitch Vertica support.
 # No additional files required.
 
 %changelog
+* Wed May 20 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9992-1
+- Upgrade to v0.9992.
+- Add perl(DateTime::TimeZone).
+- Add Provides.
+- Replace requirement for firebird-classic with firebird.
+- Replace requirement for vertica-client with /opt/vertica/bin/vsql and
+  libverticaodbc.so.
+
 * Fri Mar 3 2015 David E. Wheeler <david.wheeler@iovation.com> 0.9991-1
 - Upgrade to v0.9991.
 - Reduced required MySQL version to 5.1.
