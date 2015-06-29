@@ -722,8 +722,9 @@ sub change_id_for {
                 if $tag eq 'HEAD' || $tag eq 'LAST';
 
             # Find by change name and following tag.
+            my $limit = $self->_can_limit ? "\n             TOP 1" : '';
             return $dbh->selectcol_arrayref(qq{
-                SELECT changes.change_id
+                SELECT $limit changes.change_id
                   FROM $schema changes
                   JOIN $schema tags
                     ON changes.committed_at <= tags.committed_at
