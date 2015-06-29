@@ -9,7 +9,6 @@ App/Sqitch version 0.9993
 currently supports PostgreSQL 8.4+, SQLite 3.7.11+, MySQL 5.1+, Oracle 10g+,
 Firebird 2.0+, Vertica 6.0+, and MS SQL Server 2005+.
 
-
 What makes it different from your typical
 [migration](http://guides.rubyonrails.org/migrations.html) approaches? A few
 things:

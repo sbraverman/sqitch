@@ -157,6 +157,12 @@ sub _ts_default {
     return qq(DATEADD($offset HOUR TO CURRENT_TIMESTAMP(3)));
 }
 
+sub _version_query {
+    # Turns out, if you cast to varchar, the trailing 0s get removed. So value
+    # 1.1, represented as 1.10000002384186, returns as preferred value 1.1.
+    'SELECT CAST(ROUND(MAX(version), 1) AS VARCHAR(24)) AS v FROM releases',
+}
+
 sub is_deployed_change {
     my ( $self, $change ) = @_;
     return $self->dbh->selectcol_arrayref(
