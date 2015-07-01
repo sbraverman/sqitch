@@ -135,8 +135,8 @@ sub _select_state {
              , c.planner_email
              , $pdtcol AS planned_at
              , $tagcol AS tags
-          FROM changes   c
-          LEFT JOIN tags t ON c.change_id = t.change_id
+          FROM $schema changes   c
+          LEFT JOIN $schema tags t ON c.change_id = t.change_id
          WHERE c.project = ?
          GROUP BY c.change_id
              , ${hshcol}c.change
