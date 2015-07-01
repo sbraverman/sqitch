@@ -1,8 +1,18 @@
 -- Verify [% project %]:[% change %] on [% engine %]
 
-select 1/count(*)
-  from information_schema.routines
-  where
-    routine_type = 'FUNCTION' and
-    routine_schema = '[% object_schema %]' and
-    routine_name = '[% object_name %]'
+do language plpgsql $$
+begin
+  perform (
+    select routine_name
+    from information_schema.routines
+    where
+      routine_type = 'FUNCTION' and
+      routine_schema = '[% object_schema %]' and
+      routine_name = '[% object_name %]'
+  );
+  
+  if not found then
+    raise exception 'Sqitch Verification Error ([% change %])', '';
+  end if;
+end; $$
+    

@@ -1,10 +1,15 @@
 -- Verify [% project %]:[% change %] on [% engine %]
 
-	select 1/count(*)
-	from sys.database_principals
-	where
-	  -- filter: 'R' = role
-		type = 'R' and
-		-- filter: role name
-		name = '[% object_name %]'
-
+do language plpgsql $$
+begin
+  perform (
+    select role_name
+    from information_schema.enabled_roles
+    where
+      role_name = '[% object_name %]'
+  );
+  
+  if not found then
+    raise exception 'Sqitch Verification Error ([% change %])', '';
+  end if;
+end; $$

@@ -1,7 +1,15 @@
 -- Verify [% project %]:[% change %] on [% engine %]
 
-	select 1/count(*)
-	from information_schema.schemata
-	where
-		schema_name = '[% object_name %]'
-
+do language plpgsql $$
+begin
+  perform (
+    select schema_name
+    from information_schema.schemata
+    where
+      schema_name = '[% object_name %]'
+  );
+  
+  if not found then
+    raise exception 'Sqitch Verification Error ([% change %])', '';
+  end if;
+end; $$
