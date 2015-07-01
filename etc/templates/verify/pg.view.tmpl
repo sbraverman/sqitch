@@ -1,0 +1,9 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+  select 1/count(*)
+	from information_schema.tables
+  where
+ 		table_type = 'VIEW' and
+    table_schema = '[% object_schema %]' and
+    table_name = '[% object_name %]'
+
