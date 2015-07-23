@@ -75,7 +75,7 @@ has dbh => (
                     $dbh->do("SET SESSION $_") for (
                         q{character_set_client   = 'utf8'},
                         q{character_set_server   = 'utf8'},
-                        ($dbh->{mysql_serverversion} < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
+                        ($dbh->{mysql_serverversion} || 0 < 50500 ? () : (q{default_storage_engine = 'InnoDB'})),
                         q{time_zone              = '+00:00'},
                         q{group_concat_max_len   = 32768},
                         q{sql_mode = '} . join(',', qw(
@@ -88,6 +88,15 @@ has dbh => (
                             error_for_division_by_zero
                         )) . q{'},
                     );
+                    if (!$dbh->{mysql_serverversion} && DBI->VERSION < 1.631) {
+                        # Prior to 1.631, callbacks were inner handles and
+                        # mysql_* aren't set yet. So set InnoDB in a try block.
+                        try {
+                            $dbh->do(q{SET SESSION default_storage_engine = 'InnoDB'});
+                        };
+                        # http://www.nntp.perl.org/group/perl.dbi.dev/2013/11/msg7622.html
+                        $dbh->set_err(undef, undef) if $dbh->err;
+                    }
                     return;
                 },
             },
@@ -411,8 +420,8 @@ supports MySQL 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
 
 =head3 C<mysql>
 
-Returns a list containing the the C<mysql> client and options to be passed to
-it. Used internally when executing scripts.
+Returns a list containing the C<mysql> client and options to be passed to it.
+Used internally when executing scripts.
 
 =head1 Author
 
