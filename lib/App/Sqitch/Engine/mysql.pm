@@ -16,7 +16,7 @@ use List::MoreUtils qw(firstidx);
 
 extends 'App::Sqitch::Engine';
 
-our $VERSION = '0.9993';
+our $VERSION = '0.9994';
 
 has registry_uri => (
     is       => 'ro',
@@ -158,16 +158,35 @@ has _mysql => (
             push @ret, "--password=$pw";
         }
 
-        # if (my %vars = $self->variables) {
-        #     push @ret => map {; "--$_", $vars{$_} } sort keys %vars;
-        # }
-
+        # Options to keep things quiet.
         push @ret => (
             ($^O eq 'MSWin32' ? () : '--skip-pager' ),
             '--silent',
             '--skip-column-names',
             '--skip-line-numbers',
         );
+
+        # Add relevant query args.
+        if (my @p = $uri->query_params) {
+            my %option_for = (
+                mysql_compression     => sub { $_[0] ? '--compress' : ()  },
+                mysql_ssl             => sub { $_[0] ? '--ssl'      : ()  },
+                mysql_connect_timeout => sub { '--connect_timeout', $_[0] },
+                mysql_init_command    => sub { '--init-command',    $_[0] },
+                mysql_socket          => sub { '--socket',          $_[0] },
+                mysql_ssl_client_key  => sub { '--ssl-key',         $_[0] },
+                mysql_ssl_client_cert => sub { '--ssl-cert',        $_[0] },
+                mysql_ssl_ca_file     => sub { '--ssl-ca',          $_[0] },
+                mysql_ssl_ca_path     => sub { '--ssl-capath',      $_[0] },
+                mysql_ssl_cipher      => sub { '--ssl-cipher',      $_[0] },
+            );
+            while (@p) {
+                my ($k, $v) = (shift @p, shift @p);
+                my $code = $option_for{$k} or next;
+                push @ret => $code->($v);
+            }
+        }
+
         return \@ret;
     },
 );
@@ -310,6 +329,21 @@ sub _prepare_to_log {
     return $self;
 }
 
+sub _set_vars {
+    my %vars = shift->variables or return;
+    return 'SET ' . join(', ', map {
+        (my $k = $_) =~ s/"/""/g;
+        (my $v = $vars{$_}) =~ s/'/''/g;
+        qq{\@"$k" = '$v'};
+    } sort keys %vars) . ";\n";
+}
+
+sub _source {
+    my ($self, $file) = @_;
+    my $set = $self->_set_vars || '';
+    return ('--execute' => "${set}source $file");
+}
+
 sub _run {
     my $self = shift;
     my $sqitch = $self->sqitch;
@@ -328,23 +362,27 @@ sub _capture {
 
 sub _spool {
     my $self   = shift;
-    my $fh     = shift;
+    my @fh     = (shift);
     my $sqitch = $self->sqitch;
-    my $pass   = $self->password or return $sqitch->spool( $fh, $self->mysql, @_ );
+    if (my $set = $self->_set_vars) {
+        open my $sfh, '<:utf8_strict', \$set;
+        unshift @fh, $sfh;
+    }
+    my $pass   = $self->password or return $sqitch->spool( \@fh, $self->mysql, @_ );
     local $ENV{MYSQL_PWD} = $pass;
-    return $sqitch->spool( $fh, $self->mysql, @_ );
+    return $sqitch->spool( \@fh, $self->mysql, @_ );
 }
 
 sub run_file {
-    my ($self, $file) = @_;
-    $self->_run( '--execute' => "source $file" );
+    my $self = shift;
+    $self->_run( $self->_source(@_) );
 }
 
 sub run_verify {
-    my ($self, $file) = @_;
+    my $self = shift;
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can($self->sqitch->verbosity > 1 ? '_run' : '_capture');
-    $self->$meth( '--execute' => "source $file" );
+    $self->$meth( $self->_source(@_) );
 }
 
 sub run_upgrade {
@@ -352,7 +390,7 @@ sub run_upgrade {
     my $dbh = $self->dbh;
     my @cmd = $self->mysql;
     $cmd[1 + firstidx { $_ eq '--database' } @cmd ] = $self->registry;
-    return $self->sqitch->run( @cmd, '--execute', "source $file" )
+    return $self->sqitch->run( @cmd, $self->_source($file) )
         if $self->_fractional_seconds;
 
     # Need to strip out datetime precision.
@@ -366,7 +404,7 @@ sub run_upgrade {
     my $fh = File::Temp->new;
     print $fh $sql;
     close $fh;
-    $self->sqitch->run( @cmd, '--execute', "source $fh" );
+    $self->sqitch->run( @cmd, $self->_source($fh) );
 }
 
 sub run_handle {
@@ -421,7 +459,32 @@ supports MySQL 5.1.0 and higher (best on 5.6.4 and higher), as well as MariaDB
 =head3 C<mysql>
 
 Returns a list containing the C<mysql> client and options to be passed to it.
-Used internally when executing scripts.
+Used internally when executing scripts. Query parameters in the URI that map
+to C<mysql> client options will be passed to the client, as follows:
+
+=over
+
+=item * C<mysql_compression=1>: C<--compress>
+
+=item * C<mysql_ssl=1>: C<--ssl>
+
+=item * C<mysql_connect_timeout>: C<--connect_timeout>
+
+=item * C<mysql_init_command>: C<--init-command>
+
+=item * C<mysql_socket>: C<--socket>
+
+=item * C<mysql_ssl_client_key>: C<--ssl-key>
+
+=item * C<mysql_ssl_client_cert>: C<--ssl-cert>
+
+=item * C<mysql_ssl_ca_file>: C<--ssl-ca>
+
+=item * C<mysql_ssl_ca_path>: C<--ssl-capath>
+
+=item * C<mysql_ssl_cipher>: C<--ssl-cipher>
+
+=back
 
 =head1 Author
 

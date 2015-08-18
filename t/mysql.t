@@ -72,16 +72,6 @@ isa_ok $mysql = $CLASS->new(
     sqitch => $sqitch,
     target => $target,
 ), $CLASS;
-ok $mysql->set_variables(foo => 'baz', whu => 'hi there', yo => 'stellar'),
-    'Set some variables';
-is_deeply [$mysql->mysql], [
-    $client,
-    # '--foo' => 'baz',
-    # '--whu' => 'hi there',
-    # '--yo'  => 'stellar',
-    '--database' => 'foo',
-    @std_opts,
-], 'Variables should not be passed to mysql';
 
 ##############################################################################
 # Make sure config settings override defaults.
@@ -113,6 +103,66 @@ is_deeply [$mysql->mysql], [qw(
     --database widgets
     --host     foo.com
 ), @std_opts], 'mysql command should be configured';
+
+##############################################################################
+# Make sure URI params get passed through to the client.
+$target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => URI->new('db:mysql://foo.com/widgets?' . join(
+        '&',
+        'mysql_compression=1',
+        'mysql_ssl=1',
+        'mysql_connect_timeout=20',
+        'mysql_init_command=BEGIN',
+        'mysql_socket=/dev/null',
+        'mysql_ssl_client_key=/foo/key',
+        'mysql_ssl_client_cert=/foo/cert',
+        'mysql_ssl_ca_file=/foo/cafile',
+        'mysql_ssl_ca_path=/foo/capath',
+        'mysql_ssl_cipher=blowfeld',
+        'mysql_client_found_rows=20',
+        'mysql_foo=bar',
+    ),
+));
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a mysql with query params';
+is_deeply [$mysql->mysql], [qw(
+    /path/to/mysql
+    --database widgets
+    --host     foo.com
+), @std_opts, qw(
+    --compress
+    --ssl
+    --connect_timeout 20
+    --init-command BEGIN
+    --socket /dev/null
+    --ssl-key /foo/key
+    --ssl-cert /foo/cert
+    --ssl-ca /foo/cafile
+    --ssl-capath /foo/capath
+    --ssl-cipher blowfeld
+)], 'mysql command should be configured with query vals';
+
+$target = App::Sqitch::Target->new(
+    sqitch => $sqitch,
+    uri    => URI->new('db:mysql://foo.com/widgets?' . join(
+        '&',
+        'mysql_compression=0',
+        'mysql_ssl=0',
+        'mysql_connect_timeout=20',
+        'mysql_client_found_rows=20',
+        'mysql_foo=bar',
+    ),
+));
+ok $mysql = $CLASS->new(sqitch => $sqitch, target => $target),
+    'Create a mysql with disabled query params';
+is_deeply [$mysql->mysql], [qw(
+    /path/to/mysql
+    --database widgets
+    --host     foo.com
+), @std_opts, qw(
+    --connect_timeout 20
+)], 'mysql command should not have disabled param options';
 
 ##############################################################################
 # Now make sure that Sqitch options override configurations.
@@ -189,8 +239,16 @@ is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to run()';
 
 ok $mysql->_spool('FH'), 'Call _spool';
-is_deeply \@spool, ['FH', $mysql->mysql],
+is_deeply \@spool, [['FH'], $mysql->mysql],
     'Command should be passed to spool()';
+$mysql->set_variables(foo => 'bar', '"that"' => "'this'");
+ok $mysql->_spool('FH'), 'Call _spool with variables';
+ok my $fh = shift @{ $spool[0] }, 'Get variables file handle';
+is_deeply \@spool, [['FH'], $mysql->mysql],
+    'Command should be passed to spool() after variables handle';
+is join("\n", <$fh>), qq{SET \@"""that""" = '''this''', \@"foo" = 'bar';\n},
+    'Variables should have been escaped and set';
+$mysql->clear_variables;
 
 ok $mysql->_capture(qw(foo bar baz)), 'Call _capture';
 is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
@@ -207,7 +265,7 @@ is_deeply \@run, [$mysql->mysql, qw(foo bar baz)],
     'Command should be passed to run() again';
 
 ok $mysql->_spool('FH'), 'Call _spool again';
-is_deeply \@spool, ['FH', $mysql->mysql],
+is_deeply \@spool, [['FH'], $mysql->mysql],
     'Command should be passed to spool() again';
 
 ok $mysql->_capture(qw(foo bar baz)), 'Call _capture again';
@@ -219,21 +277,54 @@ is_deeply \@capture, [$mysql->mysql, qw(foo bar baz)],
 ok $mysql->run_file('foo/bar.sql'), 'Run foo/bar.sql';
 is_deeply \@run, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
     'File should be passed to run()';
+@run = ();
 
 ok $mysql->run_handle('FH'), 'Spool a "file handle"';
-is_deeply \@spool, ['FH', $mysql->mysql],
+is_deeply \@spool, [['FH'], $mysql->mysql],
     'Handle should be passed to spool()';
+@spool = ();
 
 # Verify should go to capture unless verosity is > 1.
 ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql';
 is_deeply \@capture, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
     'Verify file should be passed to capture()';
+@capture = ();
 
 $mock_sqitch->mock(verbosity => 2);
 ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql again';
 is_deeply \@run, [$mysql->mysql, '--execute', 'source foo/bar.sql'],
     'Verifile file should be passed to run() for high verbosity';
+@run = ();
 
+# Try with variables.
+$mysql->set_variables(foo => 'bar', '"that"' => "'this'");
+my $set = qq{SET \@"""that""" = '''this''', \@"foo" = 'bar';\n};
+
+ok $mysql->run_file('foo/bar.sql'), 'Run foo/bar.sql with vars';
+is_deeply \@run, [$mysql->mysql, '--execute', "${set}source foo/bar.sql"],
+    'Variabls and file should be passed to run()';
+@run = ();
+
+ok $mysql->run_handle('FH'), 'Spool a "file handle"';
+ok $fh = shift @{ $spool[0] }, 'Get variables file handle';
+is_deeply \@spool, [['FH'], $mysql->mysql],
+    'File handle should be passed to spool() after variables handle';
+is join("\n", <$fh>), $set, 'Variables should have been escaped and set';
+@spool = ();
+
+ok $mysql->run_verify('foo/bar.sql'), 'Verbosely verify foo/bar.sql with vars';
+is_deeply \@run, [$mysql->mysql, '--execute', "${set}source foo/bar.sql"],
+    'Variables and verify file should be passed to run()';
+@run = ();
+
+# Reset verbosity to send verify to spool.
+$mock_sqitch->unmock('verbosity');
+ok $mysql->run_verify('foo/bar.sql'), 'Verify foo/bar.sql with vars';
+is_deeply \@capture, [$mysql->mysql, '--execute', "${set}source foo/bar.sql"],
+    'Verify file should be passed to capture()';
+@capture = ();
+
+$mysql->clear_variables;
 $mock_sqitch->unmock_all;
 $mock_config->unmock_all;
 
