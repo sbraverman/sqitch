@@ -85,7 +85,7 @@ sub _target {
     }
 
     # Otherwise, it needs to be a known target from the config.
-    return $target if $self->config->get(key => "target.$target.uri");
+    return $target if $self->sqitch->config->get(key => "target.$target.uri");
     hurl engine => __x(
         'Unknown target "{target}"',
         target => $target

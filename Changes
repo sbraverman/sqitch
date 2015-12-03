@@ -1,6 +1,23 @@
 Revision history for Perl extension App::Sqitch
 
 0.9994
+     - Reduced minimum required MySQL engine from 5.1.0 to 5.0.0. Thanks to
+       @dgc-wh for testing it (Issue #251).
+     - Fixed floating-point rounding issue with SQLite registry versions on
+       Perls with 16-byte doubles. Thanks to H. Merijn Brand for the report
+       and testing.
+     - Fixed an error when adding an engine with the `engine` command. Thanks
+       to Victor Mours for the report and fix!
+     - Updated the Oracle engine to support Oracle Wallet connection strings,
+       where no username or host is in the connection URI. Thanks to Timothy
+       Procter for the patch!
+     - Improved the installer's selection of the prefix in which to install
+       `etc` files to better match the `--installdirs` option, which defaults
+       to the "site" directories. Thanks to @carragom for the pull request
+       (#265).
+     - Added missing dash to `-engine` in sample calls to `sqitch init` in the
+       tutorials. Thanks to Andrew Dunstan for the spot (Issue #268).
+     - Fixed broken Vertica documentation links.
 
 0.9993  2015-08-17T17:55:26Z
      [Bug Fixes]

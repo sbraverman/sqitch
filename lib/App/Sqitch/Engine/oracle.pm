@@ -661,22 +661,34 @@ sub _no_column_error  {
 sub _script {
     my $self = shift;
     my $uri  = $self->uri;
-    my $conn = $self->username // '';
-    if (my $pass = $self->password) {
-        $pass =~ s/"/""/g;
-        $conn .= qq{/"$pass"};
-    }
-    if (my $db = $uri->dbname) {
-        $conn .= '@';
-        $db =~ s/"/""/g;
-        if ($uri->host || $uri->_port) {
-            $conn .= '//' . ($uri->host || '');
-            if (my $port = $uri->_port) {
-                $conn .= ":$port";
+    my $conn = '';
+    my ($user, $pass, $host, $port) = (
+        $self->username, $self->password, $uri->host, $uri->_port
+    );
+    if ($user || $pass || $host || $port) {
+        $conn = $user // '';
+        if ($pass) {
+            $pass =~ s/"/""/g;
+            $conn .= qq{/"$pass"};
+        }
+        if (my $db = $uri->dbname) {
+            $conn .= '@';
+            $db =~ s/"/""/g;
+            if ($host || $port) {
+                $conn .= '//' . ($host || '');
+                if ($port) {
+                    $conn .= ":$port";
+                }
+                $conn .= qq{/"$db"};
+            } else {
+                $conn .= qq{"$db"};
             }
-            $conn .= qq{/"$db"};
-        } else {
-            $conn .= qq{"$db"};
+        }
+    } else {
+        # OS authentication or Oracle wallet (no username or password).
+        if (my $db = $uri->dbname) {
+            $db =~ s/"/""/g;
+            $conn = qq{/@"$db"};
         }
     }
     my %vars = $self->variables;
@@ -706,7 +718,7 @@ sub _capture {
 
     require IPC::Run3;
     IPC::Run3::run3(
-        [$self->sqlplus], \$conn, \@out, undef,
+        [$self->sqlplus], \$conn, \@out, @out,
         { return_if_system_error => 1 },
     );
     if (my $err = $?) {
