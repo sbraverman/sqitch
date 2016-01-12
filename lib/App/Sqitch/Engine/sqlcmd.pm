@@ -668,11 +668,11 @@ sub change_id_offset_from_id {
         $offset_expr = "WHERE RowNum $op $offset";
     }
 
-    return $self->dbh->selectrow_hashref(qq{
+    return $self->dbh->selectcol_arrayref(qq{
    	 SELECT id
    	 FROM
    	 (SELECT c.change_id AS id,
-	         ROW_NUMBER() OVER (ORDER BY c.committed_at $op) as RowNum
+	         ROW_NUMBER() OVER (ORDER BY c.committed_at $dir) as RowNum
 	           FROM $schema changes   c
 	          WHERE c.project = ?
 	            AND c.committed_at $op (
@@ -680,7 +680,7 @@ sub change_id_offset_from_id {
 	          )
 	          ) a
          $offset_expr
-    }, $self->plan->project, $change_id)->[0];
+    }, undef, $self->plan->project, $change_id)->[0];
 }
 
 sub change_offset_from_id {
