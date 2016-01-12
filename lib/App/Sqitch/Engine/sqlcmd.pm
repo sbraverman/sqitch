@@ -706,7 +706,7 @@ sub change_offset_from_id {
    	 FROM
    	 (SELECT c.change_id AS id, c.change AS name, c.project, c.note,
 	         $tscol AS "timestamp", c.planner_name, c.planner_email, $tagcol AS tags,
-	         ROW_NUMBER() OVER (ORDER BY c.committed_at $op) as RowNum
+	         ROW_NUMBER() OVER (ORDER BY c.committed_at $dir) as RowNum
 	           FROM $schema changes   c
 	           LEFT JOIN $schema tags t ON c.change_id = t.change_id
 	          WHERE c.project = ?
@@ -714,7 +714,7 @@ sub change_offset_from_id {
 	                SELECT committed_at FROM sqitch.changes WHERE change_id = ?
 	          )
 	          GROUP BY c.change_id, c.change, c.project, c.note, $tscol, c.planned_at,
-	                c.planner_name, c.planner_email, $tagcol, c.committed_at) a
+	                c.planner_name, c.planner_email, c.committed_at) a
          $offset_expr
     }, undef, $self->plan->project, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
