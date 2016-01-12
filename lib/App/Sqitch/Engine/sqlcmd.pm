@@ -663,10 +663,9 @@ sub change_id_offset_from_id {
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
 
     $offset = abs($offset) - 1;
+
     my ($offset_expr, $limit_expr) = ('', '');
-    if ($offset) {
-        $offset_expr = "WHERE RowNum $op $offset";
-    }
+    $offset_expr = "WHERE RowNum $op $offset";
 
     return $self->dbh->selectcol_arrayref(qq{
    	 SELECT id
