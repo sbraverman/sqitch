@@ -652,6 +652,36 @@ sub name_for_change_id {
     }, undef, $change_id)->[0];
 }
 
+sub change_id_offset_from_id {
+    my ( $self, $change_id, $offset ) = @_;
+    my $schema = $self->_schema;
+
+    # Just return the ID if there is no offset.
+    return $change_id unless $offset;	
+
+    # Are we offset forwards or backwards?
+    my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
+
+    $offset = abs($offset) - 1;
+
+    my ($offset_expr, $limit_expr) = ('', '');
+    $offset_expr = "WHERE RowNum > $offset";
+
+    return $self->dbh->selectcol_arrayref(qq{
+   	 SELECT id
+   	 FROM
+   	 (SELECT c.change_id AS id,
+	         ROW_NUMBER() OVER (ORDER BY c.committed_at $dir) as RowNum
+	           FROM $schema changes   c
+	          WHERE c.project = ?
+	            AND c.committed_at $op (
+	                SELECT committed_at FROM sqitch.changes WHERE change_id = ?
+	          )
+	          ) a
+         $offset_expr
+    }, undef, $self->plan->project, $change_id)->[0];
+}
+
 sub change_offset_from_id {
     my ( $self, $change_id, $offset ) = @_;
     my $schema = $self->_schema;
@@ -667,28 +697,25 @@ sub change_offset_from_id {
     $offset = abs($offset) - 1;
     my ($offset_expr, $limit_expr) = ('', '');
     if ($offset) {
-        $offset_expr = "OFFSET $offset";
-
-        # Some engines require LIMIT when there is an OFFSET.
-        if (my $lim = $self->_limit_default) {
-            $limit_expr = "TOP $lim ";
-        }
+        $offset_expr = "WHERE RowNum > $offset";
     }
 
     my $change = $self->dbh->selectrow_hashref(qq{
-        SELECT $limit_expr c.change_id AS id, c.change AS name, c.project, c.note,
-               $tscol AS "timestamp", c.planner_name, c.planner_email,
-               $tagcol AS tags
-          FROM $schema changes   c
-          LEFT JOIN $schema tags t ON c.change_id = t.change_id
-         WHERE c.project = ?
-           AND c.committed_at $op (
-               SELECT committed_at FROM $schema changes WHERE change_id = ?
-         )
-         GROUP BY c.change_id, c.change, c.project, c.note, c.planned_at,
-               c.planner_name, c.planner_email, c.committed_at
-         ORDER BY c.committed_at $dir
-          $offset_expr
+    
+   	 SELECT id, name, project, note, "timestamp", planner_name, planner_email, tags 
+   	 FROM
+   	 (SELECT c.change_id AS id, c.change AS name, c.project, c.note,
+	         $tscol AS "timestamp", c.planner_name, c.planner_email, $tagcol AS tags,
+	         ROW_NUMBER() OVER (ORDER BY c.committed_at $op) as RowNum
+	           FROM $schema changes   c
+	           LEFT JOIN $schema tags t ON c.change_id = t.change_id
+	          WHERE c.project = ?
+	            AND c.committed_at $op (
+	                SELECT committed_at FROM sqitch.changes WHERE change_id = ?
+	          )
+	          GROUP BY c.change_id, c.change, c.project, c.note, $tscol, c.planned_at,
+	                c.planner_name, c.planner_email, $tagcol, c.committed_at) a
+         $offset_expr
     }, undef, $self->plan->project, $change_id) || return undef;
     $change->{timestamp} = _dt $change->{timestamp};
     unless (ref $change->{tags}) {
