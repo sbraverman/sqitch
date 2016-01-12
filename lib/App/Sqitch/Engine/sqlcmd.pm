@@ -657,7 +657,7 @@ sub change_id_offset_from_id {
     my $schema = $self->_schema;
 
     # Just return the ID if there is no offset.
-    return $self->load_change($change_id) unless $offset;
+    return $change_id unless $offset;	
 
     # Are we offset forwards or backwards?
     my ( $dir, $op ) = $offset > 0 ? ( 'ASC', '>' ) : ( 'DESC' , '<' );
