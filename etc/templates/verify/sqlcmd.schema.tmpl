@@ -1,0 +1,9 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+if not exists (
+	select *
+	from information_schema.schemata
+	where
+		schema_name = '[% object_name %]'
+)
+  raiserror (N'Sqitch Verification Error ([% change %])', 20, 1) with log

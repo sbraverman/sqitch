@@ -1,0 +1,11 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+if not exists (
+  select name
+  from sys.database_principals
+  where
+    -- filter: 'S' SQL or 'U' Integrated user
+    type in ('S', 'U') and
+    name = '[% object_name %]'
+)
+  raiserror (N'Sqitch Verification Error ([% change %])', 20, 1) with log

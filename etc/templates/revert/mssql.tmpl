@@ -1,7 +1,5 @@
 -- Revert [% project %]:[% change %] from [% engine %]
 
-BEGIN TRANSACTION Revert;
+-- TODO: Amend SQL for Revert [% change %]
 
--- XXX Add DDLs here.
-
-COMMIT TRANSACTION Revert;
+drop [% object_type %] [% object_schema %].[% object_name %]

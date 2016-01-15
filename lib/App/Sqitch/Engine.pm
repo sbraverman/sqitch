@@ -14,7 +14,7 @@ use App::Sqitch::Types qw(Str Int Sqitch Plan Bool HashRef URI Maybe Target);
 use namespace::autoclean;
 use constant registry_release => '1.1';
 
-our $VERSION = '0.9994';
+our $VERSION = '0.9995';
 
 has sqitch => (
     is       => 'ro',
@@ -175,6 +175,9 @@ sub use_driver {
 sub deploy {
     my ( $self, $to, $mode ) = @_;
     my $sqitch   = $self->sqitch;
+    if ($self->name eq 'sqlcmd') {
+      $self->initialize;
+    }
     my $plan     = $self->_sync_plan;
     my $to_index = $plan->count - 1;
 
@@ -682,7 +685,22 @@ sub _params_for_key {
 
 sub change_id_for_key {
     my $self = shift;
-    return $self->change_id_for( $self->_params_for_key(shift) );
+    return $self->find_change_id( $self->_params_for_key(shift) );
+}
+
+sub find_change_id {
+    my ( $self, %p ) = @_;
+
+    # Find the change ID or return undef.
+    my $change_id = $self->change_id_for(
+        change_id => $p{change_id},
+        change    => $p{change},
+        tag       => $p{tag},
+        project   => $p{project} || $self->plan->project,
+    ) // return;
+
+    # Return relative to the offset.
+    return $self->change_id_offset_from_id($change_id, $p{offset});
 }
 
 sub change_for_key {
@@ -1009,6 +1027,11 @@ sub _check_registry {
     return $self if $newver == $oldver;
 
     hurl engine => __x(
+        'No registry found in {destination}. Have you ever deployed?',
+        destination => $self->registry_destination,
+    ) if $oldver == 0 && !$self->initialized;
+
+    hurl engine => __x(
         'Registry version is {old} but {new} is the latest known. Please upgrade Sqitch',
         old => $oldver,
         new => $newver,
@@ -1169,6 +1192,11 @@ sub name_for_change_id {
 sub change_offset_from_id {
     my $class = ref $_[0] || $_[0];
     hurl "$class has not implemented change_offset_from_id()";
+}
+
+sub change_id_offset_from_id {
+    my $class = ref $_[0] || $_[0];
+    hurl "$class has not implemented change_id_offset_from_id()";
 }
 
 sub registered_projects {
@@ -1591,7 +1619,7 @@ will be the offset number of changes before the latest change.
 
 =head3 C<change_for_key>
 
-  my $change = if $engine->change_for_key(key);
+  my $change = if $engine->change_for_key($key);
 
 Searches the deployed changes for a change corresponding to the specified key,
 which should be in a format as described in L<sqitchchanges>. Throws an
@@ -1600,7 +1628,7 @@ matches no changes.
 
 =head3 C<change_id_for_key>
 
-  my $change_id = if $engine->change_id_for_key(key);
+  my $change_id = if $engine->change_id_for_key($key);
 
 Searches the deployed changes for a change corresponding to the specified key,
 which should be in a format as described in L<sqitchchanges>, and returns the
@@ -1609,7 +1637,7 @@ Returns C<undef> if it matches no changes.
 
 =head3 C<change_for_key>
 
-  my $change = if $engine->change_for_key(key);
+  my $change = if $engine->change_for_key($key);
 
 Searches the list of deployed changes for a change corresponding to the
 specified key, which should be in a format as described in L<sqitchchanges>.
@@ -1675,6 +1703,13 @@ Search by change name or tag.
 
 The offset, if passed, will be applied relative to whatever change is found by
 the above algorithm.
+
+=head3 C<find_change_id>
+
+  my $change_id = $engine->find_change_id(%params);
+
+Like C<find_change()>, taking the same parameters, but returning an ID instead
+of a change.
 
 =head3 C<run_deploy>
 
@@ -2311,6 +2346,13 @@ Otherwise, the change returned should be C<$offset> steps from that change ID,
 where C<$offset> may be positive (later step) or negative (earlier step).
 Returns C<undef> if the change was not found or if the offset is more than the
 number of changes before or after the change, as appropriate.
+
+=head3 C<change_id_offset_from_id>
+
+  my $id = $engine->change_id_offset_from_id( $change_id, $offset );
+
+Like C<change_offset_from_id()> but returns the change ID rather than the
+change object.
 
 =head3 C<registry_version>
 

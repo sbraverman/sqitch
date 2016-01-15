@@ -1,0 +1,12 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+if not exists (
+	select name
+	from sys.database_principals
+	where
+	  -- filter: 'R' = role
+		type = 'R' and
+		-- filter: role name
+		name = '[% object_name %]'
+)
+  raiserror (N'Sqitch Verification Error ([% change %])', 20, 1) with log

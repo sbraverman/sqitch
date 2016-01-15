@@ -7,8 +7,6 @@
 -- conflicts: [% item %]
 [% END -%]
 
-BEGIN TRANSACTION Deploy;
+-- TODO: Amend SQL for Deploy [% change %]
 
--- XXX Add DDLs here.
-
-COMMIT TRANSACTION Deploy;
+create [% object_type %] [% object_schema %].[% object_name %] -- ...

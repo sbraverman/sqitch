@@ -1,3 +1,40 @@
 -- Verify [% project %]:[% change %] on [% engine %]
 
--- sqitch.verify "--Add your script here--"
+-- Check for existence
+if not exists (
+	select name
+	
+-- TODO: Amend SQL for Verify [% change %]
+
+-- tables
+	from information_schema.tables
+  where
+  	-- filter: ends with either 'table' or 'view'
+		table_type like '%[% object_type %]' and -- 'BASE TABLE' or 'VIEW'
+    table_schema = '[% object_schema %]' and
+    table_name = '[% object_name %]'
+    
+-- or routines
+	from information_schema.routines
+  where
+		routine_type = '[% object_type %]' and -- 'FUNCTION' or 'PROCEDURE'
+    routine_schema = '[% object_schema %]' and
+    routine_name = '[% object_name %]'
+    
+-- or schema
+	from information_schema.schemata
+		where
+		schema_name = '[% object_name %]'
+		
+-- or principals
+	from sys.database_principals
+	where
+		-- filter: translate user S or U and role to R
+		type like case '[% object_type %]'
+			when 'user' then '[SU]'
+			when 'role' then 'R'
+			else ''
+		end and
+		name = '[% object_name %]'
+)
+  raiserror (N'Sqitch Verification Error ([% change %])', 20, 1) with log

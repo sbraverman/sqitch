@@ -1,0 +1,11 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+if not exists (
+	select *
+	from information_schema.tables
+  where
+ 		table_type = 'BASE TABLE' and
+    table_schema = '[% object_schema %]' and
+    table_name = '[% object_name %]'
+)
+  raiserror (N'Sqitch Verification Error ([% change %])', 20, 1) with log

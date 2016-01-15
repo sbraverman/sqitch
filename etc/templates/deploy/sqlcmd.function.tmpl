@@ -1,0 +1,16 @@
+-- Deploy [% project %]:[% change %] to [% engine %]
+
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+create function [% object_schema %].[% object_name %]
+  (@variable datatype)
+  returns datatype as
+	begin
+	  -- TODO: Amend SQL for Deploy [% change %]
+	  return @variable
+	end

@@ -1,0 +1,16 @@
+-- Verify [% project %]:[% change %] on [% engine %]
+
+do language plpgsql $$
+begin
+  perform (
+    select table_name
+    from information_schema.views
+    where
+      table_schema = '[% object_schema %]' and
+      table_name = '[% object_name %]'
+  );
+  
+  if not found then
+    raise exception 'Sqitch Verification Error ([% change %])', '';
+  end if;
+end; $$

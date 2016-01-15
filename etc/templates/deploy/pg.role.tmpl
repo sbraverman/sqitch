@@ -1,0 +1,11 @@
+-- Deploy [% project %]:[% change %] to [% engine %]
+
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+-- TODO: Amend SQL for Deploy [% change %]
+create role [% object_name %]

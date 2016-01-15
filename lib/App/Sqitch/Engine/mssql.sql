@@ -1,104 +1,103 @@
 CREATE TABLE dbo.releases(
-	version float NOT NULL,
-	installed_at datetime2 NOT NULL,
-	installer_name varchar(255) NOT NULL,
-	installer_email varchar(255) NOT NULL,
+  version float NOT NULL,
+  installed_at datetime2 NOT NULL,
+  installer_name varchar(255) NOT NULL,
+  installer_email varchar(255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
-	version ASC
+  version ASC
 )
 )
 
 
 CREATE TABLE dbo.projects(
-	project varchar(255) NOT NULL,
-	uri varchar(255) NULL,
-	created_at datetime2 NOT NULL,
-	creator_name varchar(255) NOT NULL,
-	creator_email varchar(255) NOT NULL,
+  project varchar(255) NOT NULL,
+  uri varchar(255) NULL,
+  created_at datetime2 NOT NULL,
+  creator_name varchar(255) NOT NULL,
+  creator_email varchar(255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
-	project ASC
+  project ASC
 ),
 UNIQUE NONCLUSTERED 
 (
-	uri ASC
+  uri ASC
 )
 ) 
 
 CREATE TABLE dbo.events(
-	event varchar(6) NOT NULL,
-	change_id varchar(40) NOT NULL,
-	change varchar(255) NOT NULL,
-	project varchar(255) NOT NULL,
-	note varchar(8000) NOT NULL,
-	requires varchar(8000) NOT NULL,
-	conflicts varchar(8000) NOT NULL,
-	tags varchar(8000) NOT NULL,
-	committed_at datetime2 NOT NULL,
-	committer_name varchar(255) NOT NULL,
-	committer_email varchar(255) NOT NULL,
-	planned_at datetime2 NOT NULL,
-	planner_name varchar(255) NOT NULL,
-	planner_email varchar(255) NOT NULL,
+  event varchar(6) NOT NULL,
+  change_id varchar(40) NOT NULL,
+  change varchar(255) NOT NULL,
+  project varchar(255) NOT NULL,
+  note varchar(8000) NOT NULL,
+  requires varchar(8000) NOT NULL,
+  conflicts varchar(8000) NOT NULL,
+  tags varchar(8000) NOT NULL,
+  committed_at datetime2 NOT NULL,
+  committer_name varchar(255) NOT NULL,
+  committer_email varchar(255) NOT NULL,
+  planned_at datetime2 NOT NULL,
+  planner_name varchar(255) NOT NULL,
+  planner_email varchar(255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
-	change_id ASC,
-	committed_at ASC
+  change_id ASC,
+  committed_at ASC
 )
 ) 
 
 CREATE TABLE dbo.changes(
-	change_id varchar(40) NOT NULL,
-	script_hash varchar(40) NULL,
-	change varchar(255) NOT NULL,
-	project varchar(255) NOT NULL,
-	note varchar(8000) NOT NULL,
-	committed_at datetime2 NOT NULL,
-	committer_name varchar(255) NOT NULL,
-	committer_email varchar(255) NOT NULL,
-	planned_at datetime2 NOT NULL,
-	planner_name varchar(255) NOT NULL,
-	planner_email varchar(255) NOT NULL,
+  change_id varchar(40) NOT NULL,
+  script_hash varchar(40) NULL,
+  change varchar(255) NOT NULL,
+  project varchar(255) NOT NULL,
+  note varchar(8000) NOT NULL,
+  committed_at datetime2 NOT NULL,
+  committer_name varchar(255) NOT NULL,
+  committer_email varchar(255) NOT NULL,
+  planned_at datetime2 NOT NULL,
+  planner_name varchar(255) NOT NULL,
+  planner_email varchar(255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
-	change_id ASC,
-	script_hash ASC
+	change_id ASC
 )
 ) 
 
 CREATE TABLE dbo.tags(
-	tag_id varchar(40) NOT NULL,
-	tag varchar(255) NOT NULL,
-	project varchar(255) NOT NULL,
-	change_id varchar(40) NOT NULL,
-	note varchar(255) NOT NULL,
-	committed_at datetime2 NOT NULL,
-	committer_name varchar(255) NOT NULL,
-	committer_email varchar(255) NOT NULL,
-	planned_at datetime2 NOT NULL,
-	planner_name varchar(255) NOT NULL,
-	planner_email varchar(255) NOT NULL,
+  tag_id varchar(40) NOT NULL,
+  tag varchar(255) NOT NULL,
+  project varchar(255) NOT NULL,
+  change_id varchar(40) NOT NULL,
+  note varchar(255) NOT NULL,
+  committed_at datetime2 NOT NULL,
+  committer_name varchar(255) NOT NULL,
+  committer_email varchar(255) NOT NULL,
+  planned_at datetime2 NOT NULL,
+  planner_name varchar(255) NOT NULL,
+  planner_email varchar(255) NOT NULL,
 PRIMARY KEY CLUSTERED 
 (
-	tag_id ASC
+  tag_id ASC
 ),
 UNIQUE NONCLUSTERED 
 (
-	project ASC,
-	tag ASC
+  project ASC,
+  tag ASC
 )
 ) 
 
 CREATE TABLE dbo.dependencies(
-	change_id varchar(40) NOT NULL,
-	type varchar(8) NOT NULL,
-	dependency varchar(255) NOT NULL,
-	dependency_id varchar(40) NULL,
+  change_id varchar(40) NOT NULL,
+  type varchar(8) NOT NULL,
+  dependency varchar(255) NOT NULL,
+  dependency_id varchar(40) NULL,
 PRIMARY KEY CLUSTERED 
 (
-	change_id ASC,
-	dependency ASC
+  change_id ASC,
+  dependency ASC
 )
 )
 
