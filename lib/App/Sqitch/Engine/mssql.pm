@@ -33,6 +33,7 @@ has registry_uri => (
         my @host   = split /@/, $fields[2];
         my $pwd    = $uri->password;
 
+        # TODO: is this correct for all 3 $self->_driver()? if so: update this ocmment to reflect that. If not: update th ecode to do the right thing
         if ( defined $pwd ) {
             $uri->query( "Provider=" . $self->provider . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";" );
         }
@@ -123,10 +124,10 @@ has dbh => (
         my $self = shift;
         $self->use_driver;
 
-        my $uri = $self->registry_uri;    # ?how does $uri->dbi_dsn know what $self->driver to use?
+        my $uri = $self->registry_uri;
 
         my $dbh = DBI->connect(
-            $uri->dbi_dsn,
+            $uri->dbi_dsn($self->_driver),
             scalar $self->username,
             scalar $self->password,
             {
@@ -904,15 +905,43 @@ App::Sqitch::Engine::mssql - Sqitch MSSQL Engine
 
 =head1 Synopsis
 
-my $mysql = App::Sqitch::Engine->load( engine => 'mssql' );
+my $mssql = App::Sqitch::Engine->load( engine => 'mssql' );
 
 =head1 Description
 
 App::Sqitch::Engine::mssql provides the MSSQL storage engine for Sqitch.
 
+=head2 Changing the DBD driver
+
+App::Sqitch::Engine::mssql supports multiple DBD drivers.
+
+You can get the current driver from:
+
+     $mysql->_driver()
+
+If it is not set it will attempt to determine the best one to use in this order: <DBD::ADO> on Win32 machine, L<DBD::ODBC>, L<DBD::Sybase>.
+
+It can be set two ways:
+
+via the new() attribute C<_driver>:
+
+   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', _driver => "DBD::ADO" );
+   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', _driver => "DBD::ODBC" );
+   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', _driver => "DBD::Sybase" );
+
+or via the attribute method C<_driver>:
+
+   $mysql->_driver("DBD::ADO");
+   $mysql->_driver("DBD::ODBC");
+   $mysql->_driver("DBD::Sybase");
+
+Specifying any other value will also throw an exception.
+
+Later when it is actually needed, if the given driver can not be loaded C<use_driver()> will throw an exception to that effect.
+
 =head1 Author
 
-David E. Wheeler <david@justatheory.com>
+David E. Wheeler <david@justatheory.com>, Brian Mckeen <TODO: fill me in>, Dan Muey <http://drmuey.com/cpan_contact.pl>
 
 =head1 License
 
