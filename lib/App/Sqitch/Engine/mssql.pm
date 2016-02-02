@@ -33,7 +33,7 @@ has registry_uri => (
         my @host   = split /@/, $fields[2];
         my $pwd    = $uri->password;
 
-        # TODO: is this correct for all 3 $self->_driver()? if so: update this ocmment to reflect that. If not: update th ecode to do the right thing
+        # TODO: is this correct for all 3 $self->dbd_driver()? if so: update this ocmment to reflect that. If not: update th ecode to do the right thing
         if ( defined $pwd ) {
             $uri->query( "Provider=" . $self->provider . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";" );
         }
@@ -82,7 +82,7 @@ sub registry_destination {
     return $uri->as_string;
 }
 
-has _driver => (
+has dbd_driver => (
     is  => 'rw',
     isa => sub { die "Driver must be one of theses DBD modules: DBD::ADO, DBD::ODBC, DBD::Sybase\n" unless $_[0] =~ m/\ADBD::(?:ADO|ODBC|Sybase)\z/ },
 );
@@ -90,20 +90,20 @@ has _driver => (
 sub use_driver {
     my ($self) = @_;
 
-    if ( $self->_driver() ) {
-        eval "require " . $self->_driver();
+    if ( $self->dbd_driver() ) {
+        eval "require " . $self->dbd_driver();
         if ($@) {
-            hurl $self->key => __x( "Could not load specified driver: {driver}", driver => $self->_driver() );
+            hurl $self->key => __x( "Could not load specified driver: {driver}", driver => $self->dbd_driver() );
         }
     }
     elsif ( $^O eq 'MSWin32' && try { require DBD::ADO } ) {
-        $self->_driver('DBD::ADO');
+        $self->dbd_driver('DBD::ADO');
     }
     elsif ( try { require DBD::ODBC } ) {
-        $self->_driver('DBD::ODBC');
+        $self->dbd_driver('DBD::ODBC');
     }
     elsif ( try { require DBD::Sybase } ) {
-        $self->_driver('DBD::Sybase');
+        $self->dbd_driver('DBD::Sybase');
     }
     else {
         hurl $self->key => __x(
@@ -127,7 +127,7 @@ has dbh => (
         my $uri = $self->registry_uri;
 
         my $dbh = DBI->connect(
-            $uri->dbi_dsn($self->_driver),
+            $uri->dbi_dsn( $self->dbd_driver ),
             scalar $self->username,
             scalar $self->password,
             {
@@ -194,10 +194,10 @@ sub name { 'MSSQL' }
 
 sub driver {
     my ($self) = @_;
-    if ( !$self->_driver ) {
+    if ( !$self->dbd_driver ) {
         $self->use_driver;    # safe because our use_driver() does not call driver()
     }
-    return $self->_driver;
+    return $self->dbd_driver;
 }
 sub default_client { 'sqlcmd.exe' }
 
@@ -917,23 +917,23 @@ App::Sqitch::Engine::mssql supports multiple DBD drivers.
 
 You can get the current driver from:
 
-     $mysql->_driver()
+     $mysql->dbd_driver()
 
 If it is not set it will attempt to determine the best one to use in this order: <DBD::ADO> on Win32 machine, L<DBD::ODBC>, L<DBD::Sybase>.
 
 It can be set two ways:
 
-via the new() attribute C<_driver>:
+via the new() attribute C<dbd_driver>:
 
-   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', _driver => "DBD::ADO" );
-   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', _driver => "DBD::ODBC" );
-   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', _driver => "DBD::Sybase" );
+   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', dbd_driver => "DBD::ADO" );
+   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', dbd_driver => "DBD::ODBC" );
+   my $mssql = App::Sqitch::Engine->load( engine => 'mssql', dbd_driver => "DBD::Sybase" );
 
-or via the attribute method C<_driver>:
+or via the attribute method C<dbd_driver>:
 
-   $mysql->_driver("DBD::ADO");
-   $mysql->_driver("DBD::ODBC");
-   $mysql->_driver("DBD::Sybase");
+   $mysql->dbd_driver("DBD::ADO");
+   $mysql->dbd_driver("DBD::ODBC");
+   $mysql->dbd_driver("DBD::Sybase");
 
 Specifying any other value will also throw an exception.
 
