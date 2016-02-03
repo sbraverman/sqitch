@@ -959,7 +959,7 @@ Later when it is actually needed, if the given driver can not be loaded C<use_dr
 
 =head1 Author
 
-David E. Wheeler <david@justatheory.com>, Brian Mckeen <https://github.com/brianmckeen>, Dan Muey <http://drmuey.com/cpan_contact.pl>
+David E. Wheeler <david@justatheory.com>, Brian Mckeen <brian.mckeen@nhs.net>, Dan Muey <http://drmuey.com/cpan_contact.pl>
 
 =head1 License
 
