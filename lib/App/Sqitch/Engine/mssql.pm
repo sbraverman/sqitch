@@ -20,6 +20,28 @@ extends 'App::Sqitch::Engine';
 
 our $VERSION = '0.999_1';
 
+has integrated_security => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self   = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "engine.$engine.integrated_security" );
+    }
+);
+
+has provider => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self   = shift;
+        my $engine = $self->key;
+        return $self->sqitch->config->get( key => "engine.$engine.provider" );
+    }
+);
+
 has registry_uri => (
     is       => 'ro',
     isa      => URIDB,
@@ -33,7 +55,7 @@ has registry_uri => (
         my @host   = split /@/, $fields[2];
         my $pwd    = $uri->password;
 
-        # TODO: is this correct for all 3 $self->dbd_driver()? if so: update this ocmment to reflect that. If not: update th ecode to do the right thing
+        # TODO: is this correct for all 3 $self->dbd_driver()? if so: update this comment to reflect that. If not: update the code to do the right thing
         if ( defined $pwd ) {
             $uri->query( "Provider=" . $self->provider . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";" );
         }
@@ -919,7 +941,7 @@ You can get the current driver from:
 
      $mysql->dbd_driver()
 
-If it is not set it will attempt to determine the best one to use in this order: <DBD::ADO> on Win32 machine, L<DBD::ODBC>, L<DBD::Sybase>.
+If it is not set it will attempt to determine the best one to use in this order: L<DBD::ADO> on Win32 machine, L<DBD::ODBC>, L<DBD::Sybase>.
 
 It can be set two ways:
 
@@ -941,7 +963,7 @@ Later when it is actually needed, if the given driver can not be loaded C<use_dr
 
 =head1 Author
 
-David E. Wheeler <david@justatheory.com>, Brian Mckeen <TODO: fill me in>, Dan Muey <http://drmuey.com/cpan_contact.pl>
+David E. Wheeler <david@justatheory.com>, Brian Mckeen <https://github.com/brianmckeen>, Dan Muey <http://drmuey.com/cpan_contact.pl>
 
 =head1 License
 
