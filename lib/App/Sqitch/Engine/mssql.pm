@@ -290,11 +290,7 @@ sub initialize {
 
         my @tables = qw(releases changes dependencies events projects tags);
         foreach my $name (@tables) {
-            my $schema_stmnt = sprintf(
-                qq
-	{ALTER SCHEMA %s TRANSFER $name;},
-                $self->registry
-            );
+            my $schema_stmnt = sprintf( "ALTER SCHEMA %s TRANSFER $name;", $self->registry );
             $result = $sqlsrv->sql($schema_stmnt);
         }
         $self->_register_release;
