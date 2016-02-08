@@ -11,7 +11,7 @@ use Locale::TextDomain qw(App-Sqitch);
 use App::Sqitch::Plan::Change;
 use Path::Class;
 use Moo;
-use App::Sqitch::Types qw(DBH URIDB ArrayRef);
+use App::Sqitch::Types qw(DBH URIDB ArrayRef Str);
 use namespace::autoclean;
 use List::MoreUtils qw(firstidx);
 use File::Slurp;
