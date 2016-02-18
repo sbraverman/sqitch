@@ -13,8 +13,7 @@ use Path::Class;
 use Moo;
 use App::Sqitch::Types qw(DBH URIDB ArrayRef Str);
 use namespace::autoclean;
-use List::MoreUtils qw(firstidx);
-use File::Slurp;
+use File::Slurp qw(read_file);
 
 extends 'App::Sqitch::Engine';
 
