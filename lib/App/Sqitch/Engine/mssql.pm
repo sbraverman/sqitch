@@ -56,13 +56,35 @@ has registry_uri => (
         my $pwd    = $uri->password;
 
         # TODO: is this correct for all 3 $self->dbd_driver()? if so: update this comment to reflect that. If not: update the code to do the right thing
-        if ( defined $pwd ) {
-            $uri->query( "Provider=" . $self->provider . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";" );
+        if ( !$uri->query_param('Provider') ) {    # TODO: deal w/ case sensitivity in these checks e.g. it was given as 'provider' not 'Provider'
+            $uri->query_param( 'Provider', $self->provider ) if $self->provider;
         }
-        if ( not defined $pwd ) {
+        if ( !$uri->query_param('Initial Catalog') ) {
+            $uri->query_param( 'Initial Catalog', $db );
+        }
+        if ( !$uri->query_param('Server') ) {
+            $uri->query_param( 'Server', $host[1] );
+        }
 
-            $uri->query( "Provider=" . $self->provider . ";Integrated Security=" . $self->integrated_security . ";Initial Catalog=" . $db . ";Server=" . $host[1] . ";" );
+        if ( defined $pwd ) {
+            $uri->query_param( "Persist Security Info", "False" ) unless $uri->query_param('Persist Security Info');
         }
+        else {
+            # https://msdn.microsoft.com/library/ms254500(v=vs.100).aspx#Anchor_1
+            my $seckey = 'Integrated Security';
+            my $secval = $self->integrated_security || 'SSPI';
+
+            if ( $self->provider =~ m/odbc/i ) {
+                $seckey = 'Trusted_Connection';
+                $secval = 'yes' if lc($secval) eq 'sspi' || lc($secval) eq 'true';
+            }
+            elsif ( $self->provider =~ m/oracleclient/i ) {
+                $secval = 'yes' if lc($secval) eq 'sspi' || lc($secval) eq 'true';
+            }
+
+            $uri->query_param( $seckey, $secval ) unless $uri->query_param($seckey);
+        }
+
         return $uri;
     },
 );
