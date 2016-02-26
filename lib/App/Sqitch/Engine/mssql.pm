@@ -47,6 +47,7 @@ has registry_uri => (
     lazy     => 1,
     required => 1,
     default  => sub {
+        require URI::QueryParam;
         my $self   = shift;
         my $uri    = $self->uri->clone;
         my @fields = split /\//, $uri;
