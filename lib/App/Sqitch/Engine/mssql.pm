@@ -281,13 +281,6 @@ sub initialize {
     my $pwd   = $uri->password;
 
     #Create the Sqitch database if it does not exist.
-    ( my $db = $self->registry ) =~ s/"/""/g;
-    my $sqlsrv = sql_init( $self->uri->host, undef, undef, $self->registry_uri->dbname );
-
-    if ( defined $pwd ) {
-        $sqlsrv = sql_init( $self->uri->host, $uname, $pwd, $self->registry_uri->dbname );
-    }
-
     my $stmnt = sprintf(
         "CREATE SCHEMA %s",
         $self->registry
@@ -298,22 +291,16 @@ sub initialize {
         $self->registry
     );
 
-    my $registry = $sqlsrv->sql($check_stmnt);
-
-    my $reg = "";
-
-    foreach my $row (@$registry) {
-        $reg = "$$row{schema_name}";
-    }
-
-    if ( $reg ne $self->registry ) {
-        my $result = $sqlsrv->sql($stmnt);
+    my $dbh = $self->dbh;
+    my ($reg) = $dbh->selectrow_array($check_stmnt);
+    if ( !$reg || $reg ne $self->registry ) {
+        my $result = $dbh->do($stmnt);
         $self->run_upgrade( file(__FILE__)->dir->file('mssql.sql') );
 
         my @tables = qw(releases changes dependencies events projects tags);
         foreach my $name (@tables) {
             my $schema_stmnt = sprintf( "ALTER SCHEMA %s TRANSFER $name;", $self->registry );
-            $result = $sqlsrv->sql($schema_stmnt);
+            $result = $dbh->do($schema_stmnt);
         }
         $self->_register_release;
     }
@@ -321,9 +308,8 @@ sub initialize {
 
 sub run_upgrade {
     my ( $self, $file ) = @_;
-    my $sqlsrv     = sql_init( $self->uri->host, undef, undef, $self->registry_uri->dbname );
     my $file_stmnt = read_file($file);
-    my $result     = $sqlsrv->sql($file_stmnt);
+    my $result     = $self->dbh->do($file_stmnt);
 }
 
 # Override to lock the Sqitch tables. This ensures that only one instance of
