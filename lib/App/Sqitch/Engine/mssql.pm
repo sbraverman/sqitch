@@ -274,15 +274,23 @@ sub initialized {
 }
 
 sub initialize {
-
     my $self  = shift;
     my $uri   = $self->uri->clone;
     my $uname = $uri->user;
     my $pwd   = $uri->password;
 
-    #Create the Sqitch database if it does not exist.
+    # Create the Sqitch database if it does not exist.
     my $stmnt = sprintf(
-        "CREATE SCHEMA %s",
+        q{
+        IF NOT EXISTS (
+        SELECT  schema_name
+        FROM    information_schema.schemata
+        WHERE   schema_name = '%s' )
+
+        BEGIN
+        EXEC sp_executesql N'CREATE SCHEMA %s'
+        END},
+        $self->registry,
         $self->registry
     );
 
@@ -293,15 +301,17 @@ sub initialize {
 
     my $dbh = $self->dbh;
     my ($reg) = $dbh->selectrow_array($check_stmnt);
+
     if ( !$reg || $reg ne $self->registry ) {
-        my $result = $dbh->do($stmnt);
+        $dbh->do($stmnt);
         $self->run_upgrade( file(__FILE__)->dir->file('mssql.sql') );
 
         my @tables = qw(releases changes dependencies events projects tags);
         foreach my $name (@tables) {
             my $schema_stmnt = sprintf( "ALTER SCHEMA %s TRANSFER $name;", $self->registry );
-            $result = $dbh->do($schema_stmnt);
+            $dbh->do($schema_stmnt);
         }
+
         $self->_register_release;
     }
 }
