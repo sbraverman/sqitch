@@ -243,7 +243,7 @@ sub driver {
     }
     return $self->dbd_driver;
 }
-sub default_client { 'sqlcmd.exe' }
+sub default_client { $^O eq "MSWin32" ? 'sqlcmd.exe' : 'sqlcmd' }    # https://msdn.microsoft.com/en-us/library/hh568451.aspx
 
 sub _char2ts {
     substr( $_[1], 0, 10 ) . ' ' . substr( $_[1], 11, 16 );
