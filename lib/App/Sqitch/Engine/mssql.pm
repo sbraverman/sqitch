@@ -170,8 +170,10 @@ has dbh => (
 
         my $uri = $self->registry_uri;
 
+        my $driver = $self->dbd_driver;
+        $driver =~ s/DBD:://;
         my $dbh = DBI->connect(
-            $uri->dbi_dsn( $self->dbd_driver ),
+            $uri->dbi_dsn($driver),
             scalar $self->username,
             scalar $self->password,
             {
