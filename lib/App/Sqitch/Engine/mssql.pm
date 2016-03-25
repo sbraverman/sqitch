@@ -61,7 +61,9 @@ has registry_uri => (
             $uri->query_param( lc($param) => @values );
         }
 
-        # TODO: is this correct for all 3 $self->dbd_driver()? if so: update this comment to reflect that. If not: update the code to do the right thing
+        # TODO: is this correct for all 3 $self->dbd_driver()?
+        #   If so: update this comment and sqitchtutorial-mssql.pod POD to reflect that.
+        #   If not: update the code to do the right thing and then update this comment and sqitchtutorial-mssql.pod POD to reflect that.
         if ( !$uri->query_param('provider') ) {
             $uri->query_param( 'provider', $self->provider ) if $self->provider;
         }
