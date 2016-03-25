@@ -55,27 +55,33 @@ has registry_uri => (
         my @host   = split /@/, $fields[2];
         my $pwd    = $uri->password;
 
+        # normalize params since they are case insensitive
+        for my $param ( $uri->query_param ) {
+            my @values = $uri->query_param_delete($param);    # does not leave $param in hash w/ no values
+            $uri->query_param( lc($param) => @values );
+        }
+
         # TODO: is this correct for all 3 $self->dbd_driver()? if so: update this comment to reflect that. If not: update the code to do the right thing
-        if ( !$uri->query_param('Provider') ) {    # TODO: deal w/ case sensitivity in these checks e.g. it was given as 'provider' not 'Provider'
-            $uri->query_param( 'Provider', $self->provider ) if $self->provider;
+        if ( !$uri->query_param('provider') ) {
+            $uri->query_param( 'provider', $self->provider ) if $self->provider;
         }
-        if ( !$uri->query_param('Initial Catalog') ) {
-            $uri->query_param( 'Initial Catalog', $db );
+        if ( !$uri->query_param('initial catalog') ) {
+            $uri->query_param( 'initial catalog', $db );
         }
-        if ( !$uri->query_param('Server') ) {
-            $uri->query_param( 'Server', $host[1] );
+        if ( !$uri->query_param('server') ) {
+            $uri->query_param( 'server', $host[1] );
         }
 
         if ( defined $pwd ) {
-            $uri->query_param( "Persist Security Info", "False" ) unless $uri->query_param('Persist Security Info');
+            $uri->query_param( "persist security info", "False" ) unless $uri->query_param('persist security info');
         }
         else {
             # https://msdn.microsoft.com/library/ms254500(v=vs.100).aspx#Anchor_1
-            my $seckey = 'Integrated Security';
+            my $seckey = 'integrated security';
             my $secval = $self->integrated_security || 'SSPI';
 
             if ( $self->provider =~ m/odbc/i ) {
-                $seckey = 'Trusted_Connection';
+                $seckey = 'trusted_connection';
                 $secval = 'yes' if lc($secval) eq 'sspi' || lc($secval) eq 'true';
             }
             elsif ( $self->provider =~ m/oracleclient/i ) {
