@@ -1102,6 +1102,10 @@ The Oracle engine.
 
 The MySQL engine.
 
+=item L<App::Sqitch::Engine::mssql>
+
+The MsSQL engine.
+
 =item L<App::Sqitch::Engine::vertica>
 
 The Vertica engine.
