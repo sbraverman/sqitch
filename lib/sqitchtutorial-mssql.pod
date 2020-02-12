@@ -117,6 +117,14 @@ By default, Sqitch will read F<sqitch.conf> in the current directory for
 settings. But it will also read F<~/.sqitch/sqitch.conf> for user-specific
 settings. 
 
+If you are looking to use ODBC, then you will need to add the driver e.g. {ODBC Driver 17 for SQL Server}
+  > cat sqitch.conf
+  [code]
+	engine = mssql
+	
+  [engine.mssql]
+	driver = {ODBC Driver 17 for SQL Server} 
+
 Let's tell it who we are, since this data will be used in all
 of our projects:
 

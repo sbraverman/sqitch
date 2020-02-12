@@ -1,8 +1,4 @@
-#!perl -w
-
-# SJ 2015-02-10: fter perl 5.10 -CA is invalid on #! line so replace with these use statements
-use open ':std', ':utf8';
-use open IO => ':bytes';
+#!/usr/bin/perl -w -CAS
 
 use POSIX qw(setlocale);
 BEGIN {

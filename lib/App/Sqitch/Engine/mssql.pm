@@ -30,13 +30,24 @@ has integrated_security => (
     }
 );
 
-has provider => (
+has mssql_driver => (
     is      => 'ro',
     isa     => Str,
     lazy    => 1,
     default => sub {
         my $self   = shift;
         my $engine = $self->key;
+        return $self->sqitch->config->get( key => "engine.$engine.driver" );
+    }
+);
+
+has provider => (
+    is      => 'ro',
+    isa     => Str,
+    lazy    => 1,
+    default => sub {
+        my $self   = shift;
+	my $engine = $self->key;
         return $self->sqitch->config->get( key => "engine.$engine.provider" );
     }
 );
@@ -64,14 +75,11 @@ has registry_uri => (
         # TODO: is this correct for all 3 $self->dbd_driver()?
         #   If so: update this comment and sqitchtutorial-mssql.pod POD to reflect that.
         #   If not: update the code to do the right thing and then update this comment and sqitchtutorial-mssql.pod POD to reflect that.
-        if ( !$uri->query_param('provider') ) {
-            $uri->query_param( 'provider', $self->provider ) if $self->provider;
-        }
+	if ( !$uri->query_param('Driver') ) {
+	    $uri->query_param( 'Driver', $self->mssql_driver) if $self->mssql_driver;
+	}
         if ( !$uri->query_param('initial catalog') ) {
             $uri->query_param( 'initial catalog', $db );
-        }
-        if ( !$uri->query_param('server') ) {
-            $uri->query_param( 'server', $host[1] );
         }
 
         if ( defined $pwd ) {
@@ -166,6 +174,7 @@ sub use_driver {
     }
 
     return $self;
+
 }
 
 has dbh => (
@@ -180,8 +189,13 @@ has dbh => (
 
         my $driver = $self->dbd_driver;
         $driver =~ s/DBD:://;
+	
+	# this change eventually should make its way to URI-DB repo
+	my $dsn = $uri->dbi_dsn($driver);
+	$dsn =~ s/;Port=/,/;
+
         my $dbh = DBI->connect(
-            $uri->dbi_dsn($driver),
+	    $dsn,
             scalar $self->username,
             scalar $self->password,
             {
@@ -228,14 +242,12 @@ has _sqlcmd => (
         my @ret = ( $self->client );
         for my $spec (
             [ d => $uri->dbname ],
-            [ S => $uri->host ],
+            [ S => $uri->host . ',' . $uri->port ],
+            [ U => $uri->user ],
+            [ P => $uri->password ],
           ) {
-            push @ret, " -$spec->[0] " => $spec->[1] if $spec->[1];
+            push @ret, '-' . $spec->[0] => $spec->[1] if $spec->[1];
         }
-
-        push @ret => (
-            ' -E ',
-        );
 
         return \@ret;
     },
@@ -374,7 +386,7 @@ sub _listagg_format {
 
 sub _run {
     my $self = shift;
-    return $self->sqitch->run( $self->sqlcmd, @_ );
+    return $self->sqitch->run( $self->sqlcmd , @_ );
 }
 
 sub _capture {
@@ -390,7 +402,7 @@ sub _spool {
 
 sub run_file {
     my ( $self, $file ) = @_;
-    $self->_run( '-i ' => "$file" );
+    $self->_run( '-i' => "$file" );
 }
 
 sub run_verify {
@@ -398,7 +410,7 @@ sub run_verify {
 
     # Suppress STDOUT unless we want extra verbosity.
     my $meth = $self->can( $self->sqitch->verbosity > 1 ? '_run' : '_capture' );
-    $self->$meth( '-i ' => "$file" );
+    $self->$meth( '-i' => "$file" );
 }
 
 sub run_handle {
